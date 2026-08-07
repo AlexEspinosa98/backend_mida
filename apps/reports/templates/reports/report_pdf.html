@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Reporte MIDA — {{ paciente.nombre_completo }}</title>
+</head>
+<body>
+
+  <header class="encabezado">
+    <div class="marca">
+      <span class="marca-nombre">MIDA</span>
+      <span class="marca-subtitulo">Tamizaje Nutricional Infantil — Indicadores OMS 0-5 años</span>
+    </div>
+    <div class="meta-reporte">
+      <div>Evaluación: {{ evaluacion.id }}</div>
+      <div>Fecha: {{ evaluacion.fecha_evaluacion|date:"d/m/Y" }}</div>
+    </div>
+  </header>
+
+  {% if alerta_critica %}
+  <section class="banner-alerta">
+    ⚠ ALERTA CRÍTICA — Este paciente presenta al menos un hallazgo que requiere
+    remisión médica inmediata. Revise los indicadores marcados en rojo.
+  </section>
+  {% endif %}
+
+  <section class="datos-paciente">
+    <h2>Datos del paciente</h2>
+    <table class="tabla-datos">
+      <tr>
+        <td class="etiqueta">Nombre</td>
+        <td>{{ paciente.nombre_completo }}</td>
+        <td class="etiqueta">Sexo</td>
+        <td>{{ paciente.get_sexo_display }}</td>
+      </tr>
+      <tr>
+        <td class="etiqueta">Documento</td>
+        <td>{{ paciente.documento_identidad|default:"—" }}</td>
+        <td class="etiqueta">Fecha de nacimiento</td>
+        <td>{{ paciente.fecha_nacimiento|date:"d/m/Y" }}</td>
+      </tr>
+      <tr>
+        <td class="etiqueta">Edad</td>
+        <td>{{ evaluacion.edad_meses_decimal }} meses</td>
+        <td class="etiqueta">Tipo de medición</td>
+        <td>{{ evaluacion.get_tipo_medicion_talla_display }}</td>
+      </tr>
+      <tr>
+        <td class="etiqueta">Peso</td>
+        <td>{{ evaluacion.peso_kg }} kg</td>
+        <td class="etiqueta">Talla</td>
+        <td>{{ evaluacion.talla_cm }} cm</td>
+      </tr>
+      <tr>
+        <td class="etiqueta">Perímetro cefálico</td>
+        <td>{% if evaluacion.perimetro_cefalico_cm %}{{ evaluacion.perimetro_cefalico_cm }} cm{% else %}No registrado{% endif %}</td>
+        <td class="etiqueta">Perímetro braquial</td>
+        <td>{% if evaluacion.perimetro_braquial_cm %}{{ evaluacion.perimetro_braquial_cm }} cm{% else %}No registrado{% endif %}</td>
+      </tr>
+      <tr>
+        <td class="etiqueta">Edema bilateral</td>
+        <td colspan="3">{% if evaluacion.edema_bilateral %}Sí — signo clínico de desnutrición aguda severa{% else %}No{% endif %}</td>
+      </tr>
+    </table>
+  </section>
+
+  <section class="resumen-clinico">
+    <h2>Impresión clínica</h2>
+    <p>{{ resumen_clinico|linebreaksbr }}</p>
+  </section>
+
+  <section class="indicadores">
+    <h2>Indicadores antropométricos OMS</h2>
+    {% for item in items %}
+    {% with r=item.resultado %}
+    <div class="tarjeta-indicador nivel-{{ r.nivel_alerta }}">
+      <div class="tarjeta-encabezado">
+        <span class="indicador-codigo">{{ r.get_indicador_display }}</span>
+        <span class="badge badge-{{ r.nivel_alerta }}">
+          {{ r.clasificacion }}
+          {% if r.valor_z is not None %} (z = {{ r.valor_z|floatformat:2 }}){% endif %}
+          {% if r.es_bypass %} · corte clínico{% endif %}
+        </span>
+      </div>
+      {% if item.grafico %}
+        <img class="grafico" src="{{ item.grafico }}" alt="Gráfica {{ r.get_indicador_display }}">
+      {% else %}
+        <p class="sin-grafico">{{ r.detalle.motivo|default:"Indicador no aplicable para esta evaluación." }}</p>
+      {% endif %}
+    </div>
+    {% endwith %}
+    {% endfor %}
+  </section>
+
+  <footer class="pie">
+    <p class="aviso">
+      Apoyo a la decisión clínica — no reemplaza el juicio profesional médico.
+      Los z-scores se calcularon con las tablas de referencia oficiales de la
+      Organización Mundial de la Salud (WHO Child Growth Standards, 2006).
+    </p>
+    <p class="marca-agua">Generado por MIDA el {{ evaluacion.reporte.generado_en|date:"d/m/Y H:i" }}</p>
+  </footer>
+
+</body>
+</html>

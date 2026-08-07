@@ -1,0 +1,13 @@
+Django>=6.1,<6.2
+djangorestframework>=3.18
+psycopg2-binary>=2.9
+django-environ>=0.14
+langgraph>=1.2
+llama-cpp-python>=0.3
+huggingface_hub>=1.0
+weasyprint>=69.0
+matplotlib>=3.11
+numpy>=2.5
+pandas>=3.0
+gunicorn>=26.0
+whitenoise>=6.12
