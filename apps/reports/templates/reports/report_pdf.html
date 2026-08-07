@@ -154,11 +154,29 @@
       </div>
       {% endif %}
       {% endwith %}
-      {% if item.grafico %}
-        <img class="grafico" src="{{ item.grafico }}" alt="Gráfica {{ r.get_indicador_display }}">
+
+      {% if item.grafico_oms or item.grafico_comunitario %}
+      <div class="graficos-comparativos {% if item.grafico_comunitario %}graficos-dobles{% endif %}">
+        {% if item.grafico_oms %}
+        <div class="grafico-columna">
+          <img class="grafico" src="{{ item.grafico_oms }}" alt="Gráfica OMS {{ r.get_indicador_display }}">
+        </div>
+        {% endif %}
+        {% if item.grafico_comunitario %}
+        <div class="grafico-columna">
+          <img class="grafico" src="{{ item.grafico_comunitario }}" alt="Gráfica comunitaria {{ r.get_indicador_display }}">
+        </div>
+        {% endif %}
+      </div>
       {% else %}
         <p class="sin-grafico">{{ r.detalle.motivo|default:"Indicador no aplicable para esta evaluación." }}</p>
       {% endif %}
+
+      <div class="conclusion-indicador">
+        <h3>Conclusión</h3>
+        <p>{{ item.conclusion }}</p>
+      </div>
+
       {% if g %}
       <div class="glosario-indicador">
         <p><strong>Qué mide:</strong> {{ g.que_mide }}</p>

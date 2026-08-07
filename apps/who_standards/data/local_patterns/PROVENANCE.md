@@ -48,12 +48,31 @@ rigor que la OMS:
   (DE 1.02). Mismo supuesto de rampa lineal 0-24 meses aplicado por
   consistencia (el documento no lo tabula así explícitamente para peso,
   pero sus gráficas de "brecha de peso" muestran una forma similar).
-- **IMC, Peso-para-talla, Perímetro Braquial**: el estudio concluye que
-  estos SON comparables a la OMS para esta población -- por eso
-  `local_patterns.py` NO calcula un ajuste separado para ellos; se usa
-  únicamente el z-score OMS estándar, y el reporte cita esta conclusión
-  explícitamente.
+- **IMC-para-edad**: diferencia media = +0.78, DE de la diferencia = 1.82
+  -- del "Resumen de las Diferencias Estadísticas con la OMS" al final del
+  documento. Esta cifra es **global** (Kogui + Arhuaco combinados), NO
+  desglosada por etnia ni sexo como sí lo están talla y peso-para-edad --
+  es el dato menos preciso de los cuatro que se implementan. Sin rampa
+  por edad (el estudio no describe ni grafica una forma de "brecha
+  creciente" para IMC como sí lo hace para talla/peso, así que se aplica
+  constante en vez de inventar una forma sin evidencia).
+- **Peso-para-talla**: diferencia media = +0.29kg, DE = 1.50kg -- mismo
+  origen (resumen global, no desglosado por etnia/sexo) y mismo
+  tratamiento (sin rampa) que IMC.
+- **Perímetro Braquial**: el estudio SÍ reporta una cifra global (diferencia
+  −0.19cm, DE 1.51) pero `local_patterns.py` NO la implementa como
+  comparación comunitaria, porque este indicador se clasifica clínicamente
+  por un **corte absoluto en centímetros** (<11.5cm / <12.5cm), no por
+  z-score -- no tiene un equivalente natural de "mediana ajustada" que
+  tenga sentido clasificar de la misma manera.
 - **Perímetro cefálico**: no evaluado por el estudio -- sin ajuste.
+
+**Por qué se incluyen IMC y Peso-para-talla si el estudio dice que YA son
+comparables a la OMS**: precisamente para mostrar esa conclusión con una
+gráfica de datos reales, en vez de solo afirmarla en texto -- al superponer
+la mediana comunitaria (calculada con estos desfases pequeños) contra la
+mediana OMS, ambas líneas quedan visualmente muy cercanas, confirmando
+que aquí no hay el mismo sesgo que en talla/peso-para-edad.
 
 **Esto NO reemplaza un estudio con datos crudos por mes de edad.** Antes
 de usar el ajuste comunitario para decisiones clínicas reales, sería

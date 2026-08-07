@@ -42,9 +42,39 @@ def test_peso_comunitario_usa_sd_especifica_por_etnia_sexo():
     assert r["valor_z"] == pytest.approx((10.0 - esperado_mediana) / 0.79)
 
 
-def test_indicadores_sin_patron_local_no_se_ven_afectados():
-    # imc/pt/pb/pc no tienen función comunitaria expuesta -- confirmamos
-    # que el módulo simplemente no ofrece esas funciones (decisión
-    # explícita: el estudio dice que ya son comparables a la OMS).
-    assert not hasattr(local_patterns, "imc_para_edad_comunitario")
-    assert not hasattr(local_patterns, "peso_para_talla_comunitario")
+def test_imc_comunitario_usa_offset_global_sin_rampa():
+    r = local_patterns.imc_para_edad_comunitario("kogui", 15.0, 16.0)
+    assert r is not None
+    assert r["etnia"] == "kogui"
+    assert r["offset_aplicado"] == pytest.approx(0.78)
+    esperado_mediana = 16.0 + 0.78
+    assert r["valor_z"] == pytest.approx((15.0 - esperado_mediana) / 1.82)
+    # Sin rampa: mismo offset sin importar la edad (la función ni siquiera
+    # recibe edad_meses).
+    assert "desglose" in r
+
+
+def test_imc_comunitario_arhuaco_usa_mismo_offset_global():
+    kogui = local_patterns.imc_para_edad_comunitario("kogui", 15.0, 16.0)
+    arhuaco = local_patterns.imc_para_edad_comunitario("arhuaco", 15.0, 16.0)
+    assert kogui["offset_aplicado"] == arhuaco["offset_aplicado"]
+
+
+def test_imc_comunitario_etnia_no_soportada_devuelve_none():
+    assert local_patterns.imc_para_edad_comunitario("ninguna", 15.0, 16.0) is None
+    assert local_patterns.imc_para_edad_comunitario(None, 15.0, 16.0) is None
+
+
+def test_peso_talla_comunitario_usa_offset_global():
+    r = local_patterns.peso_para_talla_comunitario("arhuaco", 11.0, 10.5)
+    assert r is not None
+    assert r["offset_aplicado_kg"] == pytest.approx(0.29)
+    esperado_mediana = 10.5 + 0.29
+    assert r["valor_z"] == pytest.approx((11.0 - esperado_mediana) / 1.50)
+
+
+def test_pb_y_pc_no_tienen_comparacion_comunitaria():
+    # PB se clasifica por corte absoluto (no z-score) y PC no fue evaluado
+    # por el estudio -- ninguno de los dos debe tener una función expuesta.
+    assert not hasattr(local_patterns, "perimetro_braquial_comunitario")
+    assert not hasattr(local_patterns, "perimetro_cefalico_comunitario")

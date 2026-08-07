@@ -103,18 +103,26 @@ para poder persistir el historial de todas formas.
 ### Ajuste biocultural (Kogui / Arhuaco)
 
 Si `paciente.etnia` es `"kogui"` o `"arhuaco"`, además de la comparación
-OMS estándar, Talla-para-edad y Peso-para-edad se comparan también contra
-un patrón de crecimiento local documentado para esa etnia (Sierra Nevada
-de Santa Marta), con base en un estudio de Arbeláez et al. (Gonawindúa
-IPSI) — ver `apps/who_standards/local_patterns.py` y
-`apps/who_standards/data/local_patterns/PROVENANCE.md`. Cuando el hallazgo
-OMS (moderado/severo) no se confirma en la comparación comunitaria
-(Normal), las sugerencias de proceso de-escalan automáticamente (no se
-sugiere remisión urgente basada solo en ese indicador) y el reporte lo
-explica — pero la clasificación OMS original nunca se oculta ni se
-sobreescribe, solo se complementa. Esto NO aplica a IMC, Peso-para-talla
-ni Perímetro Braquial: el estudio concluye que esos ya son comparables a
-la OMS para esta población, así que siguen su flujo normal sin ajuste.
+OMS estándar, **Talla-para-edad, Peso-para-edad, Peso-para-talla e
+IMC-para-edad** se comparan también contra un patrón de crecimiento local
+documentado para esa etnia (Sierra Nevada de Santa Marta), con base en un
+estudio de Arbeláez et al. (Gonawindúa IPSI) — ver
+`apps/who_standards/local_patterns.py` y
+`apps/who_standards/data/local_patterns/PROVENANCE.md`. El reporte técnico
+muestra, para cada uno de esos 4 indicadores, **dos gráficas lado a lado**
+(patrón OMS y patrón comunitario) y una conclusión detallada. Talla y
+Peso-para-edad tienen cifras desglosadas por etnia×sexo (donde el estudio
+documenta el sesgo real); Peso-para-talla e IMC solo tienen una cifra
+global (Kogui+Arhuaco combinados) y se incluyen sobre todo para mostrar,
+con datos reales, que en esos dos SÍ coincide con la OMS. Cuando el
+hallazgo OMS (moderado/severo) no se confirma en la comparación
+comunitaria (Normal), las sugerencias de proceso de-escalan
+automáticamente (no se sugiere remisión urgente basada solo en ese
+indicador) y el reporte lo explica — pero la clasificación OMS original
+nunca se oculta ni se sobreescribe, solo se complementa. Perímetro
+Braquial y Perímetro Cefálico no tienen comparación comunitaria (el
+primero se clasifica por un corte absoluto en cm, no por z-score; el
+segundo no fue evaluado por el estudio).
 
 ## Tests
 
@@ -166,12 +174,21 @@ real en CI).
   Antes de un uso clínico real, sería deseable obtener del equipo de
   Gonawindúa los datos crudos o tablas LMS subyacentes.
 - Al probar el ajuste biocultural con el modelo local de 3B, el LLM llegó
-  a **invertir** una vez cuál de las dos comparaciones (OMS vs. comunidad)
-  arrojaba cada resultado -- el error más serio detectado en todo este
-  desarrollo, porque habría comunicado justo lo contrario de lo real. Se
-  corrigió restringiendo el prompt para que el LLM ya no intente resumir
-  cuál comparación dijo qué (ese dato ya se muestra de forma determinística
-  en las tarjetas de indicador y en las sugerencias de proceso); aun así,
-  **todo reporte con comparación comunitaria debe revisarse con especial
-  cuidado**, verificando que el texto generado coincida con las tarjetas
-  y sugerencias antes de compartirlo.
+  a equivocarse dos veces distintas al narrar la comparación dual (OMS vs.
+  comunidad): primero invirtiendo cuál de las dos decía "Normal", y luego
+  atribuyéndole a la comparación comunitaria de un indicador el z-score
+  de OTRO indicador distinto -- los dos errores más serios detectados en
+  todo este desarrollo, porque habrían comunicado algo distinto de lo
+  real. Tras el segundo error, se decidió no seguir intentando corregir
+  esto con más instrucciones de prompt: **el LLM ya no recibe los números
+  de la comparación comunitaria en absoluto** (`apps/agents/prompts.py`) --
+  la impresión clínica y familiar solo describen los hallazgos frente a la
+  OMS, y la mención de la comparación comunitaria que sí aparece en el
+  texto la toma de una frase ya redactada y fija en las sugerencias de
+  proceso (`apps/agents/clinical_actions.py`), nunca de números crudos que
+  el modelo tenga que reconciliar él mismo. Los números exactos de ambas
+  comparaciones (badges, gráficas de dos columnas, conclusión por
+  indicador) se calculan y redactan de forma 100% determinística en
+  `apps/reports/interpretacion.py`, sin pasar por el LLM. Aun así, todo
+  reporte con comparación comunitaria debería revisarse antes de
+  compartirlo.

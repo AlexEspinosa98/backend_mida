@@ -89,7 +89,7 @@ def nodo_talla_edad(state: MidaState) -> dict:
 
 
 def nodo_peso_talla(state: MidaState) -> dict:
-    from apps.who_standards import classify, indicators
+    from apps.who_standards import classify, indicators, local_patterns
 
     calculo = indicators.peso_para_talla(
         sexo=state["paciente"]["sexo"],
@@ -98,6 +98,16 @@ def nodo_peso_talla(state: MidaState) -> dict:
         talla_cm=state["mediciones"]["talla_cm"],
         tipo_medicion=state["mediciones"]["tipo_medicion_talla"],
     )
+
+    if calculo.get("aplica", True):
+        comunitario = local_patterns.peso_para_talla_comunitario(
+            etnia=state["paciente"].get("etnia"),
+            peso_kg=state["mediciones"]["peso_kg"],
+            mediana_oms_kg=calculo["mediana_oms"],
+        )
+        if comunitario is not None:
+            comunitario.update(classify.clasificar_peso_para_talla(comunitario["valor_z"]))
+            calculo["comunitario"] = comunitario
 
     if calculo.get("aplica", True) and state["mediciones"]["edema_bilateral"]:
         calculo = classify.aplicar_override_edema(calculo)
@@ -131,7 +141,7 @@ def nodo_peso_edad(state: MidaState) -> dict:
 
 
 def nodo_imc_edad(state: MidaState) -> dict:
-    from apps.who_standards import indicators
+    from apps.who_standards import classify, indicators, local_patterns
 
     calculo = indicators.imc_para_edad(
         sexo=state["paciente"]["sexo"],
@@ -139,6 +149,15 @@ def nodo_imc_edad(state: MidaState) -> dict:
         peso_kg=state["mediciones"]["peso_kg"],
         talla_cm=state["mediciones"]["talla_cm"],
     )
+    if calculo.get("aplica", True):
+        comunitario = local_patterns.imc_para_edad_comunitario(
+            etnia=state["paciente"].get("etnia"),
+            imc=calculo["imc"],
+            mediana_oms=calculo["mediana_oms"],
+        )
+        if comunitario is not None:
+            comunitario.update(classify.clasificar_imc_para_edad(comunitario["valor_z"]))
+            calculo["comunitario"] = comunitario
     return {"resultado_imc_edad": _a_resultado("IMCE", calculo)}
 
 

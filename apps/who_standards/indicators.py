@@ -182,6 +182,7 @@ def peso_para_talla(
         "tipo_medicion_esperado_para_edad": edad_apropiada,
         "correccion_cm_aplicada": correccion_aplicada,
         "talla_cm_ajustada": talla_ajustada,
+        "mediana_oms": M,
     }
     resultado.update(classify.clasificar_peso_para_talla(z))
     return resultado
@@ -209,6 +210,7 @@ def imc_para_edad(sexo: str, edad_meses: float, peso_kg: float, talla_cm: float)
         "edad_meses": edad_meses,
         "motivo_no_aplica": None,
         "imc": imc,
+        "mediana_oms": M,
     }
     resultado.update(classify.clasificar_imc_para_edad(z))
     return resultado

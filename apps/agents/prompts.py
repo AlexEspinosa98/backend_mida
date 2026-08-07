@@ -33,18 +33,8 @@ decidida por reglas clínicas fijas. Debes incorporarlas a tu redacción de form
 menciona todas las que se te dieron, en tus propias palabras, pero NO agregues sugerencias \
 adicionales que no estén en la lista (nada de tratamientos, dosis, ni recomendaciones \
 nutricionales específicas -- ese alcance no está definido todavía).
-- Si un indicador trae también una línea "Comparación comunitaria", NO intentes tú mismo \
-explicar qué dijo cada comparación ni repetir sus dos z-scores/clasificaciones -- ese detalle \
-exacto ya está redactado de forma fija en las sugerencias de proceso y en el propio reporte, y \
-mezclar dos comparaciones en una sola frase es donde más fácil te equivocas (por ejemplo, \
-invirtiendo cuál de las dos dio "Normal"). En su lugar, para ese indicador, limítate a decir UNA \
-frase corta y genérica como: "Para {indicador} también se realizó una comparación con el patrón \
-de crecimiento de la comunidad {etnia} del paciente -- ver el detalle en las sugerencias de \
-proceso." No inventes cuál comparación fue más favorable ni cites números de la comparación \
-comunitaria tú mismo.
-- Sé conciso pero completo (un párrafo de 6-10 líneas, o hasta 10-14 si hay comparación \
-comunitaria que integrar), en lenguaje clínico apropiado para un profesional de la salud, sin \
-emojis ni encabezados.
+- Sé conciso pero completo (un párrafo de 6-10 líneas), en lenguaje clínico apropiado para un \
+profesional de la salud, sin emojis ni encabezados.
 - Si "Alerta crítica global" dice "Sí", menciónala explícitamente al inicio del párrafo. Si dice \
 "No", no afirmes que hay una alerta crítica.
 - Termina siempre recordando que este resumen es apoyo a la decisión clínica y no reemplaza \
@@ -72,13 +62,6 @@ etiquetas a la vez.
 - Se te entrega una lista de "Sugerencias de proceso" (ya decididas, no las inventes ni las \
 cambies) -- explícaselas a la familia en lenguaje simple y accionable (ej. "es importante \
 llevar a su hijo/a a una consulta médica pronto" en vez de "remisión prioritaria").
-- Si un indicador trae también una línea "Comparación comunitaria", NO expliques tú mismo qué \
-mostró cada una de las dos comparaciones ni cuál dio cada resultado -- mezclar dos comparaciones \
-en una sola frase es donde más fácil te equivocas (por ejemplo, invirtiendo cuál de las dos dijo \
-"dentro de lo esperado"). Limítate a UNA frase simple como: "Para {indicador}, también se hizo \
-una comparación con el crecimiento típico de niños de su comunidad ({etnia}) -- vea el detalle \
-en la sección '¿Qué hacer ahora?'." No inventes ni resumas cuál de las dos comparaciones fue más \
-favorable.
 - Si "Alerta crítica global" dice "Sí", el primer párrafo debe dejar clara la urgencia de buscar \
 atención médica, en tono calmado pero directo -- sin generar pánico innecesario.
 - Explica brevemente, en una frase, que estas gráficas comparan el crecimiento del niño o niña \
@@ -102,6 +85,13 @@ _NOMBRES_INDICADOR = {
 def _lineas_base(
     hallazgos: dict, paciente: dict, mediciones: dict, clave_sugerencias: str = "sugerencias"
 ) -> list[str]:
+    """No incluye la comparación comunitaria (Kogui/Arhuaco) aquí a propósito:
+    al probarlo, el LLM local llegó a mezclar/invertir los números de la
+    comparación OMS y la comunitaria más de una vez (ver README.md). Esa
+    comparación ya se muestra de forma determinística y siempre correcta
+    en el reporte técnico (badge + gráfica + conclusión por indicador en
+    apps/reports/interpretacion.py) y en las sugerencias de proceso -- el
+    LLM no necesita, y no debe, intentar narrarla también."""
     edema_texto = "Sí (presente)" if mediciones["edema_bilateral"] else "No (ausente)"
     lineas = [
         f"Paciente: sexo={paciente['sexo']}, edad={paciente['edad_meses']:.1f} meses.",
@@ -111,7 +101,7 @@ def _lineas_base(
         f"perímetro braquial={mediciones.get('perimetro_braquial_cm')}.",
         f"Edema bilateral: {edema_texto}.",
         f"Alerta crítica global: {'Sí' if hallazgos.get('alerta_critica') else 'No'}.",
-        "Hallazgos por indicador:",
+        "Hallazgos por indicador (frente al patrón OMS únicamente):",
     ]
     for r in hallazgos.get("resultados", []):
         nombre = _NOMBRES_INDICADOR.get(r["indicador"], r["indicador"])
@@ -125,15 +115,6 @@ def _lineas_base(
                 else ""
             )
         )
-        comunitario = r.get("detalle", {}).get("comunitario")
-        if comunitario:
-            lineas.append(
-                f"  Comparación comunitaria ({comunitario['etnia']}): "
-                f"clasificación='{comunitario['clasificacion']}', "
-                f"nivel_alerta={comunitario['nivel_alerta']} "
-                f"(fuente: estudio local de patrones de crecimiento de esta etnia, "
-                f"aproximación estadística -- no es una tabla OMS oficial)."
-            )
     lineas.append("Sugerencias de proceso (ya decididas, no inventar otras):")
     for s in hallazgos.get(clave_sugerencias, []):
         lineas.append(f"- {s}")

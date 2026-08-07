@@ -13,7 +13,8 @@ from apps.who_standards.glossary import (
 )
 from apps.who_standards.local_patterns import EXPLICACION_METODOLOGIA as EXPLICACION_PATRON_LOCAL
 
-from .charts import generar_grafico_indicador
+from .charts import generar_grafico_comunitario, generar_grafico_oms
+from .interpretacion import construir_conclusion
 
 _CSS_PATH = Path(__file__).parent / "static" / "reports" / "report_pdf.css"
 _CSS_FAMILIAR_PATH = Path(__file__).parent / "static" / "reports" / "report_familiar_pdf.css"
@@ -67,14 +68,25 @@ def generar_pdf_evaluacion(evaluacion) -> bytes:
     resultados_ordenados = _resultados_ordenados(evaluacion)
     hallazgos = _reconstruir_hallazgos(evaluacion, resultados_ordenados)
 
-    items = [
-        {
-            "resultado": r,
-            "grafico": generar_grafico_indicador(evaluacion.paciente.sexo, r.indicador, r),
-            "glosario": GLOSARIO_INDICADORES.get(r.indicador),
+    items = []
+    for r in resultados_ordenados:
+        resultado_dict = {
+            "valor_z": r.valor_z,
+            "clasificacion": r.clasificacion,
+            "nivel_alerta": r.nivel_alerta,
+            "detalle": r.detalle,
         }
-        for r in resultados_ordenados
-    ]
+        items.append(
+            {
+                "resultado": r,
+                "grafico_oms": generar_grafico_oms(evaluacion.paciente.sexo, r.indicador, r),
+                "grafico_comunitario": generar_grafico_comunitario(
+                    evaluacion.paciente.sexo, r.indicador, r
+                ),
+                "glosario": GLOSARIO_INDICADORES.get(r.indicador),
+                "conclusion": construir_conclusion(r.indicador, resultado_dict),
+            }
+        )
 
     contexto = {
         "evaluacion": evaluacion,

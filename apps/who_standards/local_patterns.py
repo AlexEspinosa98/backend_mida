@@ -7,11 +7,24 @@ PROVENANCE.md -- léelo antes de tocar este archivo. En resumen: esto es
 una APROXIMACIÓN basada en estadísticas agregadas de un estudio
 (Arbeláez et al., Gonawindúa Institución Pública de Salud Indígena), NO
 una tabla LMS mes a mes con el mismo rigor que las tablas oficiales OMS
-de apps/who_standards/data/*.csv. Solo cubre Talla-para-edad y
-Peso-para-edad, que es donde el estudio documenta un sesgo real al usar
-solo la referencia OMS; para IMC, Peso-para-talla y Perímetro Braquial el
-estudio concluye que la población local YA es comparable a la OMS, así
-que ahí no se calcula un ajuste aparte -- se usa el z-score OMS tal cual.
+de apps/who_standards/data/*.csv.
+
+Cubre 4 indicadores, con dos niveles de precisión distintos:
+- Talla-para-edad y Peso-para-edad: el estudio da un desfase (y, para
+  peso, una desviación estándar) DESGLOSADO por etnia×sexo -- aquí es
+  donde documenta un sesgo real de los indicadores simples frente a la
+  OMS.
+- IMC-para-edad y Peso-para-talla: el estudio concluye que estos YA son
+  comparables a la OMS (su composición corporal relativa es normal), pero
+  igual reporta una cifra de diferencia promedio + DE -- aquí SOLO como
+  cifra GLOBAL combinando ambas etnias (no desglosada por etnia/sexo,
+  menos precisa que las dos anteriores). Se incluye para poder mostrar
+  también su gráfica comparativa, confirmando visualmente con datos
+  reales la conclusión del estudio de que no hay sesgo relevante aquí.
+- Perímetro cefálico y perímetro braquial: el estudio no tabula cifras
+  utilizables para perímetro cefálico (no lo evaluó), y el perímetro
+  braquial se clasifica por un corte clínico absoluto en cm (no por
+  z-score) -- ninguno de los dos tiene una comparación comunitaria aquí.
 
 Pure Python -- no Django imports.
 """
@@ -31,17 +44,24 @@ EXPLICACION_METODOLOGIA = (
     "Indígena) sobre 13,835 valoraciones antropométricas de niños y niñas de estas "
     "etnias. Ese estudio encontró que la talla y el peso para la edad de estos niños "
     "están sistemáticamente por debajo de la mediana OMS de forma poblacional -- pero "
-    "que su índice de masa corporal, peso-para-talla y perímetro braquial SÍ son "
-    "comparables al patrón OMS, es decir, su composición corporal relativa es normal "
-    "pese a su menor talla/peso absolutos. Por eso, cuando la talla-para-edad o el "
-    "peso-para-edad muestran un hallazgo frente a la OMS que la comparación comunitaria "
-    "no confirma, esto es consistente con un patrón poblacional saludable y no debe, por "
-    "sí solo, interpretarse como desnutrición -- la valoración de riesgo nutricional real "
-    "debe apoyarse en el IMC, el peso-para-talla y el perímetro braquial. Esta "
-    "comparación comunitaria es una APROXIMACIÓN estadística basada en un estudio con "
-    "datos agregados (no en una tabla de referencia mes a mes con el mismo rigor que la "
-    "OMS) -- ver apps/who_standards/data/local_patterns/PROVENANCE.md para el detalle "
-    "metodológico completo."
+    "que su índice de masa corporal y su peso-para-talla SÍ son comparables al patrón "
+    "OMS, es decir, su composición corporal relativa es normal pese a su menor talla/peso "
+    "absolutos. Por eso, cuando la talla-para-edad o el peso-para-edad muestran un "
+    "hallazgo frente a la OMS que la comparación comunitaria no confirma, esto es "
+    "consistente con un patrón poblacional saludable y no debe, por sí solo, "
+    "interpretarse como desnutrición -- la valoración de riesgo nutricional real debe "
+    "apoyarse en el IMC, el peso-para-talla y el perímetro braquial. Se incluye también "
+    "la gráfica comunitaria de IMC y peso-para-talla, precisamente para mostrar con "
+    "datos reales que, a diferencia de talla y peso para la edad, en estos dos SÍ "
+    "coinciden ambas comparaciones. El perímetro cefálico no fue evaluado por el estudio "
+    "y el perímetro braquial se clasifica por un corte clínico absoluto en centímetros "
+    "(no por z-score), por lo que ninguno de los dos tiene una gráfica comunitaria "
+    "propia. Esta comparación comunitaria es una APROXIMACIÓN estadística basada en un "
+    "estudio con datos agregados (no en una tabla de referencia mes a mes con el mismo "
+    "rigor que la OMS; para IMC y peso-para-talla la cifra ni siquiera está desglosada "
+    "por etnia, solo hay un promedio combinado) -- ver "
+    "apps/who_standards/data/local_patterns/PROVENANCE.md para el detalle metodológico "
+    "completo."
 )
 
 # Desfase promedio (talla observada - talla media OMS, en cm) por
@@ -131,6 +151,7 @@ def talla_para_edad_comunitaria(
         "mediana_comunitaria_cm": mediana_local,
         "offset_aplicado_cm": offset_aplicado,
         "offset_meseta_cm": offset_completo,
+        "sd": _TALLA_EDAD_SD_CM,
         "fuente": "Arbeláez et al., Gonawindúa IPSI -- aproximación agregada, ver PROVENANCE.md",
     }
 
@@ -158,5 +179,70 @@ def peso_para_edad_comunitario(
         "mediana_comunitaria_kg": mediana_local,
         "offset_aplicado_kg": offset_aplicado,
         "offset_meseta_kg": offset_completo,
+        "sd": sd,
+        "fuente": "Arbeláez et al., Gonawindúa IPSI -- aproximación agregada, ver PROVENANCE.md",
+    }
+
+
+# Diferencia promedio y DE para IMC y peso-para-talla -- a diferencia de
+# talla/peso-para-edad, el estudio solo reporta estas dos como cifra
+# GLOBAL combinando Kogui + Arhuaco (resumen final del estudio), no
+# desglosada por etnia ni sexo. Se aplican igual a ambas etnias por falta
+# de un dato más específico. Sin rampa por edad: el estudio no describe
+# ni grafica una forma de "brecha creciente" para estos dos indicadores
+# como sí lo hace para talla y peso-para-edad, así que aplicamos el
+# desfase constante en vez de inventar una forma sin evidencia.
+_IMC_OFFSET = 0.78
+_IMC_SD = 1.82
+_PESO_TALLA_OFFSET_KG = 0.29
+_PESO_TALLA_SD_KG = 1.50
+
+
+def imc_para_edad_comunitario(
+    etnia: str | None, imc: float, mediana_oms: float
+) -> dict | None:
+    """Compara el IMC contra la mediana OMS ajustada por el desfase
+    comunitario GLOBAL (no desglosado por etnia/sexo, ver nota arriba).
+    Se incluye principalmente para mostrar, con datos reales, que esta
+    comparación normalmente coincide con la OMS (a diferencia de T/E y
+    P/E) -- tal como concluye el estudio."""
+    e = _normalizar_etnia(etnia)
+    if e is None:
+        return None
+
+    mediana_local = mediana_oms + _IMC_OFFSET
+    valor_z = (imc - mediana_local) / _IMC_SD
+
+    return {
+        "etnia": e,
+        "valor_z": valor_z,
+        "mediana_comunitaria": mediana_local,
+        "offset_aplicado": _IMC_OFFSET,
+        "offset_meseta": _IMC_OFFSET,
+        "sd": _IMC_SD,
+        "desglose": "global (Kogui + Arhuaco combinados, no por etnia/sexo)",
+        "fuente": "Arbeláez et al., Gonawindúa IPSI -- aproximación agregada, ver PROVENANCE.md",
+    }
+
+
+def peso_para_talla_comunitario(
+    etnia: str | None, peso_kg: float, mediana_oms_kg: float
+) -> dict | None:
+    """Análogo a imc_para_edad_comunitario pero para peso-para-talla."""
+    e = _normalizar_etnia(etnia)
+    if e is None:
+        return None
+
+    mediana_local = mediana_oms_kg + _PESO_TALLA_OFFSET_KG
+    valor_z = (peso_kg - mediana_local) / _PESO_TALLA_SD_KG
+
+    return {
+        "etnia": e,
+        "valor_z": valor_z,
+        "mediana_comunitaria_kg": mediana_local,
+        "offset_aplicado_kg": _PESO_TALLA_OFFSET_KG,
+        "offset_meseta_kg": _PESO_TALLA_OFFSET_KG,
+        "sd": _PESO_TALLA_SD_KG,
+        "desglose": "global (Kogui + Arhuaco combinados, no por etnia/sexo)",
         "fuente": "Arbeláez et al., Gonawindúa IPSI -- aproximación agregada, ver PROVENANCE.md",
     }
