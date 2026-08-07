@@ -136,6 +136,40 @@ def test_get_reporte_familiar_pdf():
     assert content[:4] == b"%PDF"
 
 
+def test_post_evaluacion_kogui_agrega_comparacion_comunitaria_y_deescala_sugerencia():
+    client = APIClient()
+    payload = _payload(
+        edad_meses=36,
+        peso_kg=12.0,
+        talla_cm=84.0,
+        tipo_medicion_talla="de_pie",
+    )
+    payload["paciente"]["etnia"] = "kogui"
+    resp = client.post("/api/v1/evaluaciones/", payload, format="json")
+
+    assert resp.status_code == 201, resp.data
+    assert resp.data["paciente"]["etnia"] == "kogui"
+
+    te = next(r for r in resp.data["resultados"] if r["indicador"] == "TE")
+    assert te["nivel_alerta"] == "severo"  # la clasificación OMS no se oculta
+    comunitario = te["detalle"]["comunitario"]
+    assert comunitario["etnia"] == "kogui"
+    assert comunitario["nivel_alerta"] == "normal"
+
+    reporte = client.get(f"/api/v1/evaluaciones/{resp.data['id']}/reporte/")
+    assert reporte.status_code == 200
+
+
+def test_post_evaluacion_sin_etnia_no_agrega_comparacion_comunitaria():
+    client = APIClient()
+    resp = client.post("/api/v1/evaluaciones/", _payload(), format="json")
+
+    assert resp.status_code == 201, resp.data
+    assert resp.data["paciente"]["etnia"] == "ninguna"
+    te = next(r for r in resp.data["resultados"] if r["indicador"] == "TE")
+    assert "comunitario" not in te["detalle"]
+
+
 def test_historial_paciente():
     client = APIClient()
     creado = client.post("/api/v1/evaluaciones/", _payload(), format="json")

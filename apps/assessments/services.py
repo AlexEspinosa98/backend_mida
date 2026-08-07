@@ -45,6 +45,7 @@ def _resolver_paciente(datos_paciente: dict | None, sexo: str, edad_meses, fecha
         documento_identidad=documento,
         fecha_nacimiento=fecha_nacimiento,
         sexo=sexo,
+        etnia=datos_paciente.get("etnia") or Paciente.Etnia.NINGUNA,
     )
 
 
@@ -73,7 +74,7 @@ def ejecutar_evaluacion(datos: dict) -> Evaluacion:
     )
 
     estado_inicial = {
-        "paciente": {"sexo": sexo, "edad_meses": float(edad_meses)},
+        "paciente": {"sexo": sexo, "edad_meses": float(edad_meses), "etnia": paciente.etnia},
         "mediciones": {
             "peso_kg": float(datos["peso_kg"]),
             "talla_cm": float(datos["talla_cm"]),

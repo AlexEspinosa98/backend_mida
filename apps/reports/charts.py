@@ -12,7 +12,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
-from apps.who_standards import lms, loader
+from apps.who_standards import local_patterns, lms, loader
 
 # Paleta (ver skill de dataviz / references/palette.md de este proyecto):
 # superficie clara, tinta neutra, y paleta de estado fija para zonas de riesgo.
@@ -22,6 +22,7 @@ _INK_SECUNDARIO = "#52514e"
 _INK_MUTED = "#898781"
 _GRID = "#e1e0d9"
 _MEDIANA = "#256abf"
+_MEDIANA_COMUNITARIA = "#4a3aa7"
 _ESTADO_GOOD = "#0ca30c"
 _ESTADO_WARNING = "#fab219"
 _ESTADO_CRITICAL = "#d03b3b"
@@ -116,7 +117,22 @@ def generar_grafico_indicador(sexo: str, indicador: str, resultado) -> str | Non
         ax.plot(xs, bandas[z], color=_INK_SECUNDARIO, linewidth=1.1, linestyle="--")
     for z in (-1, 1):
         ax.plot(xs, bandas[z], color=_INK_MUTED, linewidth=0.8, linestyle=":")
-    ax.plot(xs, bandas[0], color=_MEDIANA, linewidth=1.8, linestyle="-")
+    ax.plot(xs, bandas[0], color=_MEDIANA, linewidth=1.8, linestyle="-", label="Mediana OMS")
+
+    comunitario = detalle.get("comunitario")
+    if comunitario is not None:
+        offset_meseta = comunitario.get("offset_meseta_cm", comunitario.get("offset_meseta_kg"))
+        rampa = np.array([local_patterns.factor_rampa(x) for x in xs])
+        mediana_comunitaria = bandas[0] + offset_meseta * rampa
+        etnia_legible = comunitario["etnia"].capitalize()
+        ax.plot(
+            xs,
+            mediana_comunitaria,
+            color=_MEDIANA_COMUNITARIA,
+            linewidth=1.6,
+            linestyle="-.",
+            label=f"Mediana comunitaria ({etnia_legible}, aprox.)",
+        )
 
     for z in (-3, -2, -1, 0, 1, 2, 3):
         ax.annotate(

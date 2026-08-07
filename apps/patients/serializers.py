@@ -13,6 +13,7 @@ class PacienteSerializer(serializers.ModelSerializer):
             "documento_identidad",
             "fecha_nacimiento",
             "sexo",
+            "etnia",
             "creado_en",
         ]
         read_only_fields = ["id", "creado_en"]

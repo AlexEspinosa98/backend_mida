@@ -45,6 +45,12 @@
         <td class="etiqueta">Tipo de medición</td>
         <td>{{ evaluacion.get_tipo_medicion_talla_display }}</td>
       </tr>
+      {% if paciente.etnia != "ninguna" %}
+      <tr>
+        <td class="etiqueta">Etnia</td>
+        <td colspan="3">{{ paciente.get_etnia_display }} — ver comparación con patrón de crecimiento local más abajo</td>
+      </tr>
+      {% endif %}
       <tr>
         <td class="etiqueta">Peso</td>
         <td>{{ evaluacion.peso_kg }} kg</td>
@@ -94,6 +100,13 @@
     {{ explicacion_desviacion|linebreaksbr }}
   </section>
 
+  {% if explicacion_patron_local %}
+  <section class="patron-local">
+    <h2>Comparación adicional: patrón de crecimiento comunitario</h2>
+    <p>{{ explicacion_patron_local }}</p>
+  </section>
+  {% endif %}
+
   <section class="leyenda-colores">
     <h2>Leyenda de colores</h2>
     <table class="tabla-leyenda">
@@ -131,6 +144,16 @@
           {% if r.es_bypass %} · corte clínico{% endif %}
         </span>
       </div>
+      {% with comunitario=r.detalle.comunitario %}
+      {% if comunitario %}
+      <div class="comparacion-comunitaria">
+        <span class="etiqueta-comunitaria">Comparación comunitaria ({{ comunitario.etnia|capfirst }}):</span>
+        <span class="badge badge-{{ comunitario.nivel_alerta }}">
+          {{ comunitario.clasificacion }} (z aprox. = {{ comunitario.valor_z|floatformat:2 }})
+        </span>
+      </div>
+      {% endif %}
+      {% endwith %}
       {% if item.grafico %}
         <img class="grafico" src="{{ item.grafico }}" alt="Gráfica {{ r.get_indicador_display }}">
       {% else %}

@@ -4,6 +4,7 @@ from typing import Literal, NotRequired, Optional, TypedDict
 class PacienteInput(TypedDict):
     sexo: Literal["M", "F"]
     edad_meses: float
+    etnia: NotRequired[str]
 
 
 class MedicionesInput(TypedDict):

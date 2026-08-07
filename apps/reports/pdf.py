@@ -11,6 +11,7 @@ from apps.who_standards.glossary import (
     GLOSARIO_INDICADORES,
     LEYENDA_COLORES,
 )
+from apps.who_standards.local_patterns import EXPLICACION_METODOLOGIA as EXPLICACION_PATRON_LOCAL
 
 from .charts import generar_grafico_indicador
 
@@ -39,7 +40,12 @@ def _reconstruir_hallazgos(evaluacion, resultados_ordenados) -> dict:
     ResultadoIndicador ya persistidos, en vez de guardarlas duplicadas en la
     base de datos."""
     resultados_dict = [
-        {"indicador": r.indicador, "nivel_alerta": r.nivel_alerta, "detalle": r.detalle}
+        {
+            "indicador": r.indicador,
+            "nivel_alerta": r.nivel_alerta,
+            "clasificacion": r.clasificacion,
+            "detalle": r.detalle,
+        }
         for r in resultados_ordenados
     ]
     hallazgos = {
@@ -81,6 +87,9 @@ def generar_pdf_evaluacion(evaluacion) -> bytes:
         "explicacion_estandar_oms": EXPLICACION_ESTANDAR_OMS,
         "explicacion_desviacion": EXPLICACION_DESVIACION_ESTANDAR,
         "leyenda_colores": LEYENDA_COLORES,
+        "explicacion_patron_local": (
+            EXPLICACION_PATRON_LOCAL if evaluacion.paciente.etnia != "ninguna" else None
+        ),
     }
     html_str = render_to_string("reports/report_pdf.html", contexto)
 

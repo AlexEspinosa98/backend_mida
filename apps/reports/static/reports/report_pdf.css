@@ -109,6 +109,33 @@ h2 {
 }
 .como-interpretar p { margin: 0 0 6px; }
 
+.patron-local {
+  background: #f3f1fb;
+  border: 1px solid #4a3aa7;
+  border-radius: 4px;
+  padding: 8px 12px;
+}
+.patron-local p {
+  font-size: 9px;
+  color: #33285f;
+  margin: 0;
+}
+
+.comparacion-comunitaria {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0 6px;
+  padding: 3px 0;
+  border-top: 1px dashed #e1e0d9;
+  border-bottom: 1px dashed #e1e0d9;
+}
+.etiqueta-comunitaria {
+  font-size: 8.5px;
+  color: #4a3aa7;
+  font-weight: 600;
+}
+
 .tabla-leyenda {
   width: 100%;
   border-collapse: collapse;

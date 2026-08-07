@@ -8,12 +8,18 @@ class Paciente(models.Model):
         MASCULINO = "M", "Masculino"
         FEMENINO = "F", "Femenino"
 
+    class Etnia(models.TextChoices):
+        NINGUNA = "ninguna", "Ninguna / no indígena"
+        KOGUI = "kogui", "Kogui"
+        ARHUACO = "arhuaco", "Arhuaco"
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     nombres = models.CharField(max_length=150)
     apellidos = models.CharField(max_length=150)
     documento_identidad = models.CharField(max_length=50, blank=True, null=True)
     fecha_nacimiento = models.DateField()
     sexo = models.CharField(max_length=1, choices=Sexo.choices)
+    etnia = models.CharField(max_length=10, choices=Etnia.choices, default=Etnia.NINGUNA)
     creado_en = models.DateTimeField(auto_now_add=True)
     actualizado_en = models.DateTimeField(auto_now=True)
 

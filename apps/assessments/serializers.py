@@ -17,6 +17,9 @@ class PacienteInputSerializer(serializers.Serializer):
     apellidos = serializers.CharField(max_length=150, required=False, allow_blank=True)
     documento_identidad = serializers.CharField(max_length=50, required=False, allow_null=True)
     fecha_nacimiento = serializers.DateField(required=False)
+    etnia = serializers.ChoiceField(
+        choices=Paciente.Etnia.choices, required=False, default=Paciente.Etnia.NINGUNA
+    )
 
 
 class EvaluacionInputSerializer(serializers.Serializer):

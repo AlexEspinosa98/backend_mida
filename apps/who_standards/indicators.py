@@ -95,6 +95,7 @@ def talla_para_edad(sexo: str, edad_meses: float, talla_cm: float) -> dict:
         "tabla_usada": "lhfa",
         "edad_meses": edad_meses,
         "motivo_no_aplica": None,
+        "mediana_oms": M,
     }
     resultado.update(classify.clasificar_talla_para_edad(z))
     return resultado
@@ -119,6 +120,7 @@ def peso_para_edad(sexo: str, edad_meses: float, peso_kg: float) -> dict:
         "tabla_usada": "wfa",
         "edad_meses": edad_meses,
         "motivo_no_aplica": None,
+        "mediana_oms": M,
     }
     resultado.update(classify.clasificar_peso_para_edad(z))
     return resultado

@@ -67,13 +67,24 @@ def _a_resultado(indicador: str, calculo: dict) -> IndicadorResultado:
 
 
 def nodo_talla_edad(state: MidaState) -> dict:
-    from apps.who_standards import indicators
+    from apps.who_standards import classify, indicators, local_patterns
 
     calculo = indicators.talla_para_edad(
         sexo=state["paciente"]["sexo"],
         edad_meses=state["paciente"]["edad_meses"],
         talla_cm=state["mediciones"]["talla_cm"],
     )
+    if calculo.get("aplica", True):
+        comunitario = local_patterns.talla_para_edad_comunitaria(
+            etnia=state["paciente"].get("etnia"),
+            sexo=state["paciente"]["sexo"],
+            edad_meses=state["paciente"]["edad_meses"],
+            talla_cm=state["mediciones"]["talla_cm"],
+            mediana_oms_cm=calculo["mediana_oms"],
+        )
+        if comunitario is not None:
+            comunitario.update(classify.clasificar_talla_para_edad(comunitario["valor_z"]))
+            calculo["comunitario"] = comunitario
     return {"resultado_talla_edad": _a_resultado("TE", calculo)}
 
 
@@ -98,13 +109,24 @@ def nodo_peso_talla(state: MidaState) -> dict:
 
 
 def nodo_peso_edad(state: MidaState) -> dict:
-    from apps.who_standards import indicators
+    from apps.who_standards import classify, indicators, local_patterns
 
     calculo = indicators.peso_para_edad(
         sexo=state["paciente"]["sexo"],
         edad_meses=state["paciente"]["edad_meses"],
         peso_kg=state["mediciones"]["peso_kg"],
     )
+    if calculo.get("aplica", True):
+        comunitario = local_patterns.peso_para_edad_comunitario(
+            etnia=state["paciente"].get("etnia"),
+            sexo=state["paciente"]["sexo"],
+            edad_meses=state["paciente"]["edad_meses"],
+            peso_kg=state["mediciones"]["peso_kg"],
+            mediana_oms_kg=calculo["mediana_oms"],
+        )
+        if comunitario is not None:
+            comunitario.update(classify.clasificar_peso_para_edad(comunitario["valor_z"]))
+            calculo["comunitario"] = comunitario
     return {"resultado_peso_edad": _a_resultado("PE", calculo)}
 
 
