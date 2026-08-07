@@ -73,7 +73,13 @@ class ResultadoIndicadorSerializer(serializers.ModelSerializer):
 class ReporteGeneradoSerializer(serializers.ModelSerializer):
     class Meta:
         model = ReporteGenerado
-        fields = ["resumen_clinico", "resumen_familiar", "generado_en"]
+        fields = [
+            "resumen_clinico",
+            "resumen_familiar",
+            "plan_nutricional",
+            "tips_nutricionales",
+            "generado_en",
+        ]
 
 
 class EvaluacionSerializer(serializers.ModelSerializer):

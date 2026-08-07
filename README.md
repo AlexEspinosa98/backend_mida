@@ -70,12 +70,37 @@ La API queda expuesta detrás de `nginx` en `http://<servidor>/`.
 
 Ambos PDFs comparten los mismos hallazgos (calculados una sola vez de forma
 determinística) pero cada uno tiene su propio texto de síntesis generado
-por el LLM local -- dos nodos del grafo LangGraph corren en paralelo,
-`sintesis_clinica` y `sintesis_familiar`, cada uno con su propio prompt.
-Las sugerencias de "próximos pasos" (remisión, seguimiento, vigilancia) son
-texto fijo por reglas clínicas (`apps/agents/clinical_actions.py`), no
-generado por el LLM -- el LLM solo las redacta en prosa, nunca decide ni
-inventa sugerencias nuevas.
+por el LLM local -- tres nodos del grafo LangGraph corren en paralelo,
+`sintesis_clinica`, `sintesis_familiar` y `plan_nutricional`, cada uno con
+su propio prompt. Las sugerencias de "próximos pasos" (remisión,
+seguimiento, vigilancia) son texto fijo por reglas clínicas
+(`apps/agents/clinical_actions.py`), no generado por el LLM -- el LLM solo
+las redacta en prosa, nunca decide ni inventa sugerencias nuevas.
+
+### Plan de alimentación semanal
+
+Ambos PDFs incluyen un plan de alimentación semanal (Lunes-Domingo,
+Desayuno/Almuerzo/Merienda/Cena). La selección de qué alimento va en cada
+comida es **100% determinística** (`apps/nutrition/plan.py`): rota sobre
+el catálogo editable `Alimento` (`apps/nutrition/models.py`), filtrando por
+`disponible=True` y por edad mínima recomendada. El LLM **nunca elige ni
+menciona alimentos por nombre** -- solo redacta una introducción y
+consejos generales de alimentación sobre el plan ya armado (ver "por qué"
+en Advertencias clínicas conocidas, más abajo). El administrador gestiona
+el catálogo de alimentos (agregar, quitar, marcar no disponible, ajustar
+edad mínima) desde `/admin/nutrition/alimento/` -- el plan escala
+automáticamente con lo que haya ahí, sin tocar código.
+
+- Menores de 6 meses: no se genera plan (la OMS recomienda lactancia
+  materna exclusiva a esa edad); se muestra una nota explicando por qué.
+- Si el tamizaje encuentra un hallazgo severo/crítico en peso-para-talla,
+  IMC o perímetro braquial (indicadores de desnutrición aguda), el plan se
+  genera igual pero con un aviso de precaución fijo al inicio, recomendando
+  manejo nutricional terapéutico supervisado en vez de una guía general.
+- Si un grupo de alimentos (fruta, verdura, proteína, cereal, lácteo)
+  queda sin ningún alimento disponible para la edad del paciente, el
+  reporte técnico lo señala explícitamente para que el administrador lo
+  complete en `/admin/`.
 
 Ejemplo de payload:
 
@@ -154,9 +179,17 @@ real en CI).
   médico antes de usarse clínicamente (ver aviso en ambos PDF). Los datos
   duros (z-scores, clasificaciones, glosario, sugerencias) siempre se
   calculan y muestran de forma determinística, nunca por el LLM.
-- Los dos nodos de síntesis (clínico y familiar) comparten una sola
-  instancia del modelo cargado en memoria y sus llamadas de inferencia se
-  serializan con un lock (`apps/agents/llm.py`) — `llama-cpp-python` no es
+- El plan de alimentación semanal deliberadamente **no deja que el LLM
+  elija ni nombre alimentos**: dado que en esta misma sesión el modelo
+  local cometió errores reales al combinar/seleccionar datos estructurados
+  (ver más abajo), decidir qué alimentos son seguros para la edad de un
+  niño no es un lugar razonable para asumir ese riesgo. La selección es
+  100% código determinístico y testeado (`apps/nutrition/plan.py`); el LLM
+  solo redacta consejos genéricos sin mencionar alimentos por nombre.
+- Los tres nodos de síntesis (clínico, familiar, plan nutricional)
+  comparten una sola instancia del modelo cargado en memoria y sus
+  llamadas de inferencia se serializan con un lock (`apps/agents/llm.py`)
+  — `llama-cpp-python` no es
   seguro para inferencia concurrente sobre el mismo objeto `Llama` desde
   varios hilos (se detectó un segfault real en esta sesión al correrlas
   sin serializar). Esto significa que, aunque el grafo las declara en

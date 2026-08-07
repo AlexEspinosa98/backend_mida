@@ -41,3 +41,5 @@ class MidaState(TypedDict):
     hallazgos: NotRequired[dict]
     resumen_clinico: NotRequired[str]
     resumen_familiar: NotRequired[str]
+    plan_nutricional: NotRequired[dict]
+    tips_nutricionales: NotRequired[str]

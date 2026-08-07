@@ -64,6 +64,20 @@ def _imc_calculado(evaluacion) -> float:
     return float(evaluacion.peso_kg) / (talla_m**2)
 
 
+def _notas_plan_nutricional(plan_nutricional: dict | None) -> list[dict]:
+    """Notas por alimento (ej. 'cortar en trozos pequeños'), deduplicadas,
+    para mostrar aparte de la tabla en vez de repetirlas en cada celda."""
+    if not plan_nutricional or not plan_nutricional.get("aplica"):
+        return []
+    vistas = {}
+    for dia in plan_nutricional.get("dias", []):
+        for alimentos in dia["comidas"].values():
+            for a in alimentos:
+                if a.get("notas") and a["nombre"] not in vistas:
+                    vistas[a["nombre"]] = a["notas"]
+    return [{"nombre": nombre, "nota": nota} for nombre, nota in sorted(vistas.items())]
+
+
 def generar_pdf_evaluacion(evaluacion) -> bytes:
     resultados_ordenados = _resultados_ordenados(evaluacion)
     hallazgos = _reconstruir_hallazgos(evaluacion, resultados_ordenados)
@@ -102,6 +116,11 @@ def generar_pdf_evaluacion(evaluacion) -> bytes:
         "explicacion_patron_local": (
             EXPLICACION_PATRON_LOCAL if evaluacion.paciente.etnia != "ninguna" else None
         ),
+        "plan_nutricional": getattr(evaluacion.reporte, "plan_nutricional", None),
+        "tips_nutricionales": getattr(evaluacion.reporte, "tips_nutricionales", ""),
+        "notas_plan_nutricional": _notas_plan_nutricional(
+            getattr(evaluacion.reporte, "plan_nutricional", None)
+        ),
     }
     html_str = render_to_string("reports/report_pdf.html", contexto)
 
@@ -129,6 +148,11 @@ def generar_pdf_familiar_evaluacion(evaluacion) -> bytes:
         "alerta_critica": evaluacion.alerta_critica,
         "sugerencias": hallazgos["sugerencias_familiares"],
         "explicacion_estandar_oms": EXPLICACION_ESTANDAR_OMS,
+        "plan_nutricional": getattr(evaluacion.reporte, "plan_nutricional", None),
+        "tips_nutricionales": getattr(evaluacion.reporte, "tips_nutricionales", ""),
+        "notas_plan_nutricional": _notas_plan_nutricional(
+            getattr(evaluacion.reporte, "plan_nutricional", None)
+        ),
     }
     html_str = render_to_string("reports/report_familiar_pdf.html", contexto)
 

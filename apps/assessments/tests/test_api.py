@@ -11,13 +11,17 @@ pytestmark = pytest.mark.django_db
 @pytest.fixture(autouse=True)
 def _mock_llm():
     """Los tests de API no necesitan un modelo GGUF real cargado -- se
-    mockean los dos puntos donde el grafo llama al LLM (síntesis clínica y
-    síntesis familiar, que corren en paralelo)."""
+    mockean los tres puntos donde el grafo llama al LLM (síntesis clínica,
+    síntesis familiar y tips nutricionales, que corren en paralelo)."""
     with (
         patch("apps.agents.nodes.synthesis.generar_texto", return_value="Resumen clínico de prueba."),
         patch(
             "apps.agents.nodes.synthesis_familiar.generar_texto",
             return_value="Resumen familiar de prueba.",
+        ),
+        patch(
+            "apps.agents.nodes.nutrition.generar_texto",
+            return_value="Introducción y consejos de prueba.",
         ),
     ):
         yield

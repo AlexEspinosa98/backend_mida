@@ -9,6 +9,7 @@ from .nodes.indicator_nodes import (
     nodo_peso_talla,
     nodo_talla_edad,
 )
+from .nodes.nutrition import nodo_plan_nutricional
 from .nodes.synthesis import nodo_sintesis_clinica
 from .nodes.synthesis_familiar import nodo_sintesis_familiar
 from .nodes.validator import hay_errores_de_validacion, validar_entrada
@@ -29,6 +30,8 @@ def _nodo_error(state: MidaState) -> dict:
         "hallazgos": {"resultados": [], "alerta_critica": False},
         "resumen_clinico": "",
         "resumen_familiar": "",
+        "plan_nutricional": {"aplica": False, "motivo_no_aplica": None, "dias": [], "grupos_sin_opciones": []},
+        "tips_nutricionales": "",
     }
 
 
@@ -57,6 +60,7 @@ def build_graph():
     g.add_node("agregador_hallazgos", nodo_agregador_hallazgos)
     g.add_node("sintesis_clinica", nodo_sintesis_clinica)
     g.add_node("sintesis_familiar", nodo_sintesis_familiar)
+    g.add_node("plan_nutricional", nodo_plan_nutricional)
     g.add_node("error", _nodo_error)
 
     g.set_entry_point("validar_entrada")
@@ -69,15 +73,17 @@ def build_graph():
     for nombre in _NODOS_INDICADOR:
         g.add_edge(nombre, "agregador_hallazgos")
 
-    # Los dos nodos de síntesis (clínico y familiar) corren en paralelo desde
-    # el mismo agregador -- cada uno escribe su propia clave de estado
-    # (resumen_clinico / resumen_familiar) y termina de forma independiente;
-    # el estado final del grafo trae ambas (ver test de fan-out a 2 nodos
-    # terminales antes de construir esto).
+    # Los tres nodos siguientes corren en paralelo desde el mismo agregador
+    # -- cada uno escribe su propia clave de estado (resumen_clinico /
+    # resumen_familiar / plan_nutricional+tips_nutricionales) y termina de
+    # forma independiente; el estado final del grafo trae las tres (ver
+    # test de fan-out a N nodos terminales antes de construir esto).
     g.add_edge("agregador_hallazgos", "sintesis_clinica")
     g.add_edge("agregador_hallazgos", "sintesis_familiar")
+    g.add_edge("agregador_hallazgos", "plan_nutricional")
     g.add_edge("sintesis_clinica", END)
     g.add_edge("sintesis_familiar", END)
+    g.add_edge("plan_nutricional", END)
     g.add_edge("error", END)
 
     return g.compile()

@@ -111,6 +111,45 @@ h2 {
 }
 .lista-que-hacer li { margin-bottom: 5px; }
 
+.plan-nutricional { page-break-before: always; }
+.tips-nutricionales {
+  background: #f9f9f7;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 10.5px;
+  color: #0b0b0b;
+  margin: 0 0 10px;
+}
+.tabla-plan-nutricional {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9.5px;
+  margin-bottom: 8px;
+}
+.tabla-plan-nutricional th {
+  text-align: left;
+  color: #52514e;
+  font-size: 9px;
+  border-bottom: 1px solid #c3c2b7;
+  padding: 5px 6px;
+}
+.tabla-plan-nutricional td {
+  padding: 6px;
+  border-bottom: 1px solid #e1e0d9;
+  vertical-align: top;
+}
+.tabla-plan-nutricional td.dia {
+  font-weight: 700;
+  color: #256abf;
+  white-space: nowrap;
+}
+.notas-plan-nutricional {
+  font-size: 8.5px;
+  color: #52514e;
+  padding-left: 16px;
+}
+.notas-plan-nutricional li { margin-bottom: 2px; }
+
 .pie {
   margin-top: 18px;
   border-top: 1px solid #e1e0d9;

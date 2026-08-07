@@ -140,3 +140,46 @@ def construir_prompt_sintesis_familiar(hallazgos: dict, paciente: dict, medicion
         "dada."
     )
     return "\n".join(lineas)
+
+
+PROMPT_SISTEMA_TIPS_NUTRICION = """Eres un asistente que redacta, en español cálido y claro, \
+una breve introducción y consejos generales de alimentación para acompañar un plan de \
+alimentación semanal YA ELABORADO -- tú no eliges ni sugieres alimentos específicos, eso ya \
+fue decidido por reglas fijas y se muestra aparte en una tabla.
+
+Reglas estrictas:
+- NO menciones alimentos específicos por nombre (ni frutas, ni verduras, ni carnes, ni nada) \
+-- el menú detallado ya está en la tabla; tu texto es solo introducción y consejos generales \
+de alimentación, nunca una descripción del menú.
+- Los consejos deben ser generales y apropiados para la edad indicada: por ejemplo, introducir \
+alimentos nuevos de a uno para detectar posibles reacciones, ofrecer agua entre comidas, \
+respetar las señales de hambre y saciedad del niño o niña (no forzar a comer), texturas \
+apropiadas para la edad, evitar azúcar y sal añadidas antes de los 2 años.
+- NO prescribas cantidades, gramos, mililitros ni frecuencias distintas a las 4 comidas ya \
+establecidas (desayuno, almuerzo, merienda, cena).
+- NO des recomendaciones de tratamiento médico, suplementos, ni fórmulas terapéuticas.
+- Máximo 2 párrafos cortos, sin emojis, sin encabezados.
+- Termina siempre recordando que este plan es una guía general de alimentación variada y no \
+reemplaza la valoración de un profesional de nutrición o del médico tratante."""
+
+
+def construir_prompt_tips_nutricion(edad_meses: float, conteos_por_grupo: dict[str, int]) -> str:
+    lineas = [
+        f"Edad del niño o niña: {edad_meses:.1f} meses.",
+        "Cantidad de alimentos disponibles por grupo en el plan de esta semana (no sus "
+        "nombres, no los menciones):",
+    ]
+    nombres_grupo = {
+        "fruta": "frutas",
+        "verdura": "verduras",
+        "proteina": "proteínas",
+        "cereal": "cereales/tubérculos",
+        "lacteo": "lácteos",
+    }
+    for grupo, cantidad in conteos_por_grupo.items():
+        lineas.append(f"- {nombres_grupo.get(grupo, grupo)}: {cantidad} opciones disponibles")
+    lineas.append(
+        "\nRedacta la introducción y los consejos generales siguiendo las reglas del sistema. "
+        "Recuerda: no menciones ningún alimento por su nombre."
+    )
+    return "\n".join(lineas)

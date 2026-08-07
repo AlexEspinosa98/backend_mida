@@ -16,6 +16,8 @@ class ReporteGeneradoInline(admin.StackedInline):
     readonly_fields = (
         "resumen_clinico",
         "resumen_familiar",
+        "plan_nutricional",
+        "tips_nutricionales",
         "pdf_file",
         "pdf_file_familiar",
         "generado_en",

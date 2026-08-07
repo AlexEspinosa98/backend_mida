@@ -123,6 +123,8 @@ def ejecutar_evaluacion(datos: dict) -> Evaluacion:
         evaluacion=evaluacion,
         resumen_clinico=resultado_final.get("resumen_clinico", ""),
         resumen_familiar=resultado_final.get("resumen_familiar", ""),
+        plan_nutricional=resultado_final.get("plan_nutricional", {}),
+        tips_nutricionales=resultado_final.get("tips_nutricionales", ""),
     )
 
     evaluacion.estado = Evaluacion.Estado.COMPLETADA

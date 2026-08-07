@@ -2,7 +2,11 @@
 calculados y consolida la alerta crítica global + las sugerencias clínicas
 de proceso. No usa LLM -- todo lo que produce es texto/reglas fijas."""
 
-from ..clinical_actions import sugerencias_clinicas, sugerencias_familiares
+from ..clinical_actions import (
+    requiere_manejo_nutricional_terapeutico,
+    sugerencias_clinicas,
+    sugerencias_familiares,
+)
 from ..state import MidaState
 
 _CLAVES_RESULTADOS = [
@@ -29,4 +33,7 @@ def nodo_agregador_hallazgos(state: MidaState) -> dict:
     }
     hallazgos["sugerencias"] = sugerencias_clinicas(hallazgos)
     hallazgos["sugerencias_familiares"] = sugerencias_familiares(hallazgos)
+    hallazgos["requiere_manejo_nutricional_terapeutico"] = requiere_manejo_nutricional_terapeutico(
+        hallazgos
+    )
     return {"hallazgos": hallazgos}

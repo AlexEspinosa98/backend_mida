@@ -219,3 +219,27 @@ def sugerencias_familiares(hallazgos: dict) -> list[str]:
     acciones.extend(_notas_ajuste_biocultural_familiares(hallazgos))
 
     return acciones
+
+
+# Indicadores cuya alteración severa/crítica implica que el niño necesita
+# manejo NUTRICIONAL terapéutico (no una guía general de variedad de
+# alimentos): peso-para-talla, IMC-para-edad y perímetro braquial -- los
+# tres indicadores usados clínicamente para diagnosticar desnutrición
+# aguda. Talla-para-edad (crónica) queda fuera a propósito: un hallazgo
+# aislado ahí no define urgencia de manejo terapéutico de la misma forma.
+_INDICADORES_RIESGO_NUTRICIONAL_AGUDO = {"PT", "IMCE", "PBE"}
+
+
+def requiere_manejo_nutricional_terapeutico(hallazgos: dict) -> bool:
+    """True si el caso amerita una nota de precaución en el plan
+    nutricional (no debe tratarse como una guía general de variedad de
+    alimentos sin supervisión profesional)."""
+    if hallazgos.get("alerta_critica"):
+        return True
+    for r in hallazgos.get("resultados", []):
+        if r["indicador"] in _INDICADORES_RIESGO_NUTRICIONAL_AGUDO and r.get("nivel_alerta") in (
+            "severo",
+            "critico",
+        ):
+            return True
+    return False

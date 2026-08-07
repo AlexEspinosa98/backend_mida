@@ -94,6 +94,8 @@ class ReporteGenerado(models.Model):
     )
     resumen_clinico = models.TextField()
     resumen_familiar = models.TextField(blank=True, default="")
+    plan_nutricional = models.JSONField(default=dict, blank=True)
+    tips_nutricionales = models.TextField(blank=True, default="")
     pdf_file = models.FileField(upload_to="reportes/%Y/%m/", null=True, blank=True)
     pdf_file_familiar = models.FileField(
         upload_to="reportes_familiares/%Y/%m/", null=True, blank=True
