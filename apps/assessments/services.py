@@ -121,6 +121,7 @@ def ejecutar_evaluacion(datos: dict) -> Evaluacion:
     ReporteGenerado.objects.create(
         evaluacion=evaluacion,
         resumen_clinico=resultado_final.get("resumen_clinico", ""),
+        resumen_familiar=resultado_final.get("resumen_familiar", ""),
     )
 
     evaluacion.estado = Evaluacion.Estado.COMPLETADA

@@ -10,6 +10,7 @@ from .nodes.indicator_nodes import (
     nodo_talla_edad,
 )
 from .nodes.synthesis import nodo_sintesis_clinica
+from .nodes.synthesis_familiar import nodo_sintesis_familiar
 from .nodes.validator import hay_errores_de_validacion, validar_entrada
 from .state import MidaState
 
@@ -24,7 +25,11 @@ _NODOS_INDICADOR = [
 
 
 def _nodo_error(state: MidaState) -> dict:
-    return {"hallazgos": {"resultados": [], "alerta_critica": False}, "resumen_clinico": ""}
+    return {
+        "hallazgos": {"resultados": [], "alerta_critica": False},
+        "resumen_clinico": "",
+        "resumen_familiar": "",
+    }
 
 
 def _enrutar_tras_validacion(state: MidaState):
@@ -51,6 +56,7 @@ def build_graph():
     g.add_node("pb_edad", nodo_pb_edad)
     g.add_node("agregador_hallazgos", nodo_agregador_hallazgos)
     g.add_node("sintesis_clinica", nodo_sintesis_clinica)
+    g.add_node("sintesis_familiar", nodo_sintesis_familiar)
     g.add_node("error", _nodo_error)
 
     g.set_entry_point("validar_entrada")
@@ -63,8 +69,15 @@ def build_graph():
     for nombre in _NODOS_INDICADOR:
         g.add_edge(nombre, "agregador_hallazgos")
 
+    # Los dos nodos de síntesis (clínico y familiar) corren en paralelo desde
+    # el mismo agregador -- cada uno escribe su propia clave de estado
+    # (resumen_clinico / resumen_familiar) y termina de forma independiente;
+    # el estado final del grafo trae ambas (ver test de fan-out a 2 nodos
+    # terminales antes de construir esto).
     g.add_edge("agregador_hallazgos", "sintesis_clinica")
+    g.add_edge("agregador_hallazgos", "sintesis_familiar")
     g.add_edge("sintesis_clinica", END)
+    g.add_edge("sintesis_familiar", END)
     g.add_edge("error", END)
 
     return g.compile()

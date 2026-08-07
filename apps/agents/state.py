@@ -39,3 +39,4 @@ class MidaState(TypedDict):
 
     hallazgos: NotRequired[dict]
     resumen_clinico: NotRequired[str]
+    resumen_familiar: NotRequired[str]

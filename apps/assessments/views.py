@@ -38,17 +38,26 @@ class EvaluacionDetailView(RetrieveAPIView):
     lookup_field = "id"
 
 
-class EvaluacionReporteView(APIView):
-    """GET /api/v1/evaluaciones/{id}/reporte/ — genera (primera vez) o sirve
-    el PDF cacheado del reporte clínico."""
+class _EvaluacionReporteBaseView(APIView):
+    """Base común para las vistas de descarga de PDF (técnico y familiar)."""
 
-    def get(self, request, id):
+    nombre_archivo = "reporte_mida_{id}.pdf"
+
+    def _obtener_evaluacion(self, id):
         try:
-            evaluacion = Evaluacion.objects.select_related("paciente", "reporte").prefetch_related(
-                "resultados"
-            ).get(id=id)
+            return (
+                Evaluacion.objects.select_related("paciente", "reporte")
+                .prefetch_related("resultados")
+                .get(id=id)
+            )
         except Evaluacion.DoesNotExist as exc:
             raise Http404 from exc
+
+    def _generar_pdf(self, evaluacion):
+        raise NotImplementedError
+
+    def get(self, request, id):
+        evaluacion = self._obtener_evaluacion(id)
 
         if evaluacion.estado != Evaluacion.Estado.COMPLETADA:
             return Response(
@@ -56,14 +65,36 @@ class EvaluacionReporteView(APIView):
                 status=status.HTTP_409_CONFLICT,
             )
 
-        from apps.reports.pdf import obtener_o_generar_pdf
-
-        pdf_file = obtener_o_generar_pdf(evaluacion)
+        pdf_file = self._generar_pdf(evaluacion)
         return FileResponse(
             pdf_file.open("rb"),
             content_type="application/pdf",
-            filename=f"reporte_mida_{evaluacion.id}.pdf",
+            filename=self.nombre_archivo.format(id=evaluacion.id),
         )
+
+
+class EvaluacionReporteView(_EvaluacionReporteBaseView):
+    """GET /api/v1/evaluaciones/{id}/reporte/ — reporte técnico para el
+    médico (genera la primera vez, sirve la versión cacheada después)."""
+
+    nombre_archivo = "reporte_mida_{id}.pdf"
+
+    def _generar_pdf(self, evaluacion):
+        from apps.reports.pdf import obtener_o_generar_pdf
+
+        return obtener_o_generar_pdf(evaluacion)
+
+
+class EvaluacionReporteFamiliarView(_EvaluacionReporteBaseView):
+    """GET /api/v1/evaluaciones/{id}/reporte-familiar/ — reporte en lenguaje
+    sencillo para la familia/cuidador (genera la primera vez, cachea)."""
+
+    nombre_archivo = "reporte_familiar_mida_{id}.pdf"
+
+    def _generar_pdf(self, evaluacion):
+        from apps.reports.pdf import obtener_o_generar_pdf_familiar
+
+        return obtener_o_generar_pdf_familiar(evaluacion)
 
 
 class PacienteEvaluacionesListView(ListAPIView):

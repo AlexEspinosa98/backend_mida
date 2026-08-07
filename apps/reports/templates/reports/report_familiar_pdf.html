@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Resultado del control — {{ paciente.nombre_completo }}</title>
+</head>
+<body>
+
+  <header class="encabezado">
+    <div class="marca">
+      <span class="marca-nombre">MIDA</span>
+      <span class="marca-subtitulo">Resultado del control de crecimiento de su hijo/a</span>
+    </div>
+    <div class="meta-reporte">
+      <div>Fecha: {{ evaluacion.fecha_evaluacion|date:"d/m/Y" }}</div>
+    </div>
+  </header>
+
+  {% if alerta_critica %}
+  <section class="banner-alerta">
+    Este resultado requiere que lleve a su hijo/a a un centro de salud lo antes posible.
+    Más abajo le explicamos por qué y qué hacer.
+  </section>
+  {% endif %}
+
+  <section class="datos-paciente">
+    <p class="linea-paciente">
+      <strong>{{ paciente.nombre_completo }}</strong> · {{ evaluacion.edad_meses_decimal|floatformat:0 }} meses ·
+      {{ paciente.get_sexo_display }}
+    </p>
+  </section>
+
+  <section class="explicacion-inicial">
+    <p>{{ explicacion_estandar_oms }}</p>
+  </section>
+
+  <section class="resumen-familiar">
+    <h2>¿Qué encontramos?</h2>
+    <p>{{ resumen_familiar|linebreaksbr }}</p>
+  </section>
+
+  <section class="semaforos">
+    <h2>Resultado de cada medida</h2>
+    {% for item in items %}
+    <div class="fila-semaforo semaforo-{{ item.semaforo.color }}">
+      <span class="punto"></span>
+      <span class="nombre-medida">{{ item.nombre }}</span>
+      <span class="texto-semaforo">{{ item.semaforo.texto }}</span>
+    </div>
+    {% endfor %}
+  </section>
+
+  <section class="que-hacer">
+    <h2>¿Qué hacer ahora?</h2>
+    <ul class="lista-que-hacer">
+      {% for s in sugerencias %}
+      <li>{{ s }}</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <footer class="pie">
+    <p class="aviso">
+      Este documento es una ayuda para entender el resultado del control de crecimiento.
+      No reemplaza la consulta con el médico o profesional de salud que atiende a su hijo/a
+      -- ante cualquier duda, consúltele directamente.
+    </p>
+    <p class="marca-agua">Generado por MIDA el {{ evaluacion.reporte.generado_en|date:"d/m/Y H:i" }}</p>
+  </footer>
+
+</body>
+</html>

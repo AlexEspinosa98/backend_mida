@@ -83,6 +83,41 @@ h2 {
   color: #0b0b0b;
 }
 
+.sugerencias {
+  background: #f9f9f7;
+  border: 1px solid #e1e0d9;
+  border-radius: 4px;
+  padding: 8px 12px;
+}
+.lista-sugerencias {
+  margin: 4px 0 6px;
+  padding-left: 16px;
+  font-size: 9.5px;
+}
+.lista-sugerencias li { margin-bottom: 3px; }
+.nota-alcance {
+  font-size: 8px;
+  color: #898781;
+  font-style: italic;
+  margin: 0;
+}
+
+.como-interpretar p {
+  font-size: 9.5px;
+  color: #52514e;
+  margin: 0 0 6px;
+}
+
+.glosario-indicador {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed #e1e0d9;
+  font-size: 8.8px;
+  color: #52514e;
+}
+.glosario-indicador p { margin: 2px 0; }
+.glosario-indicador strong { color: #0b0b0b; }
+
 .indicadores { margin-top: 6px; }
 
 .tarjeta-indicador {

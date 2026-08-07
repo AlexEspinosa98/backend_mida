@@ -93,7 +93,11 @@ class ReporteGenerado(models.Model):
         Evaluacion, related_name="reporte", on_delete=models.CASCADE
     )
     resumen_clinico = models.TextField()
+    resumen_familiar = models.TextField(blank=True, default="")
     pdf_file = models.FileField(upload_to="reportes/%Y/%m/", null=True, blank=True)
+    pdf_file_familiar = models.FileField(
+        upload_to="reportes_familiares/%Y/%m/", null=True, blank=True
+    )
     generado_en = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

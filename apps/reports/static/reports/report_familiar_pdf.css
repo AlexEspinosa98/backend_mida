@@ -1,0 +1,128 @@
+@page {
+  size: A4;
+  margin: 1.8cm 1.6cm;
+  @bottom-center {
+    content: "MIDA — Resultado del control de crecimiento";
+    font-size: 8px;
+    color: #898781;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: "DejaVu Sans", "Segoe UI", sans-serif;
+  color: #0b0b0b;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+h2 {
+  font-size: 14px;
+  color: #256abf;
+  margin: 18px 0 8px;
+}
+
+.encabezado {
+  border-bottom: 3px solid #256abf;
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+}
+.marca-nombre {
+  font-size: 22px;
+  font-weight: 700;
+  color: #256abf;
+  display: block;
+}
+.marca-subtitulo {
+  font-size: 11px;
+  color: #52514e;
+}
+.meta-reporte {
+  font-size: 9.5px;
+  color: #898781;
+  margin-top: 4px;
+}
+
+.banner-alerta {
+  background: #fdecec;
+  border: 2px solid #d03b3b;
+  color: #7a1f1f;
+  padding: 12px 14px;
+  font-weight: 700;
+  font-size: 12px;
+  border-radius: 6px;
+  margin-bottom: 14px;
+}
+
+.linea-paciente {
+  font-size: 12.5px;
+  margin-bottom: 4px;
+}
+
+.explicacion-inicial p {
+  background: #f9f9f7;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 10.5px;
+  color: #52514e;
+}
+
+.resumen-familiar p {
+  font-size: 11.5px;
+}
+
+.semaforos { margin-top: 4px; }
+
+.fila-semaforo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: 1px solid #e1e0d9;
+  border-radius: 6px;
+  margin-bottom: 6px;
+}
+.punto {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.semaforo-verde .punto { background: #0ca30c; }
+.semaforo-amarillo .punto { background: #fab219; }
+.semaforo-rojo .punto { background: #d03b3b; }
+.semaforo-gris .punto { background: #898781; }
+
+.nombre-medida {
+  font-weight: 600;
+  flex: 1;
+}
+.texto-semaforo {
+  font-size: 10.5px;
+  color: #52514e;
+}
+.semaforo-rojo .texto-semaforo { color: #d03b3b; font-weight: 700; }
+.semaforo-amarillo .texto-semaforo { color: #8a5a00; font-weight: 700; }
+
+.lista-que-hacer {
+  padding-left: 18px;
+  font-size: 11px;
+}
+.lista-que-hacer li { margin-bottom: 5px; }
+
+.pie {
+  margin-top: 18px;
+  border-top: 1px solid #e1e0d9;
+  padding-top: 8px;
+}
+.aviso {
+  font-size: 9px;
+  color: #52514e;
+  font-style: italic;
+}
+.marca-agua {
+  font-size: 8px;
+  color: #898781;
+  margin-top: 3px;
+}

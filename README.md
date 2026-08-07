@@ -59,9 +59,23 @@ La API queda expuesta detrás de `nginx` en `http://<servidor>/`.
 
 - `POST /api/v1/evaluaciones/` — crea una evaluación y ejecuta el pipeline.
 - `GET /api/v1/evaluaciones/{id}/` — recupera el resultado.
-- `GET /api/v1/evaluaciones/{id}/reporte/` — descarga el PDF (genera y
-  cachea la primera vez).
+- `GET /api/v1/evaluaciones/{id}/reporte/` — descarga el reporte **técnico**
+  en PDF (para el médico: z-scores, glosario de cada indicador, sugerencias
+  de proceso y cómo interpretar las gráficas OMS). Genera y cachea la
+  primera vez.
+- `GET /api/v1/evaluaciones/{id}/reporte-familiar/` — descarga el reporte
+  en **lenguaje sencillo** para la familia/cuidador (sin z-scores ni jerga
+  médica, con semáforo verde/amarillo/rojo por indicador y próximos pasos).
 - `GET /api/v1/pacientes/{id}/evaluaciones/` — historial longitudinal.
+
+Ambos PDFs comparten los mismos hallazgos (calculados una sola vez de forma
+determinística) pero cada uno tiene su propio texto de síntesis generado
+por el LLM local -- dos nodos del grafo LangGraph corren en paralelo,
+`sintesis_clinica` y `sintesis_familiar`, cada uno con su propio prompt.
+Las sugerencias de "próximos pasos" (remisión, seguimiento, vigilancia) son
+texto fijo por reglas clínicas (`apps/agents/clinical_actions.py`), no
+generado por el LLM -- el LLM solo las redacta en prosa, nunca decide ni
+inventa sugerencias nuevas.
 
 Ejemplo de payload:
 
@@ -106,7 +120,22 @@ real en CI).
   implementó según una fuente secundaria (no se pudo verificar contra el
   PDF técnico primario de la OMS en esta sesión). Confirmar antes de usar
   con pacientes reales.
-- El resumen clínico lo redacta un LLM local pequeño; aunque el prompt lo
-  restringe a no inventar/corregir números, sigue siendo texto generado por
-  IA — todo reporte debe ser revisado por un profesional médico antes de
-  usarse clínicamente (ver aviso en el propio PDF).
+- Los resúmenes (clínico y familiar) los redacta un LLM local pequeño
+  (3B parámetros); aunque el prompt lo restringe a no inventar/corregir
+  números y se probó activamente para detectar contradicciones (dos
+  errores de este tipo se encontraron y corrigieron durante el desarrollo:
+  el modelo afirmando una alerta que no existía y mezclando
+  "normal" con "moderado" para el mismo hallazgo), sigue siendo texto
+  generado por IA — todo reporte debe ser revisado por un profesional
+  médico antes de usarse clínicamente (ver aviso en ambos PDF). Los datos
+  duros (z-scores, clasificaciones, glosario, sugerencias) siempre se
+  calculan y muestran de forma determinística, nunca por el LLM.
+- Los dos nodos de síntesis (clínico y familiar) comparten una sola
+  instancia del modelo cargado en memoria y sus llamadas de inferencia se
+  serializan con un lock (`apps/agents/llm.py`) — `llama-cpp-python` no es
+  seguro para inferencia concurrente sobre el mismo objeto `Llama` desde
+  varios hilos (se detectó un segfault real en esta sesión al correrlas
+  sin serializar). Esto significa que, aunque el grafo las declara en
+  paralelo, en la práctica el segundo resumen espera a que termine el
+  primero -- una decisión intencional para no duplicar ~2GB de RAM con un
+  segundo modelo cargado.

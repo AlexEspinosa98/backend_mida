@@ -65,14 +65,33 @@
   </section>
 
   <section class="resumen-clinico">
-    <h2>Impresión clínica</h2>
+    <h2>Impresión clínica y sugerencias</h2>
     <p>{{ resumen_clinico|linebreaksbr }}</p>
+  </section>
+
+  <section class="sugerencias">
+    <h2>Sugerencias de proceso</h2>
+    <ul class="lista-sugerencias">
+      {% for s in sugerencias %}
+      <li>{{ s }}</li>
+      {% endfor %}
+    </ul>
+    <p class="nota-alcance">
+      Estas sugerencias son de proceso (remisión, seguimiento, vigilancia) y no
+      incluyen tratamiento, dosis ni indicaciones nutricionales específicas.
+    </p>
+  </section>
+
+  <section class="como-interpretar">
+    <h2>Cómo interpretar este reporte</h2>
+    <p>{{ explicacion_estandar_oms }}</p>
+    <p>{{ explicacion_desviacion }}</p>
   </section>
 
   <section class="indicadores">
     <h2>Indicadores antropométricos OMS</h2>
     {% for item in items %}
-    {% with r=item.resultado %}
+    {% with r=item.resultado g=item.glosario %}
     <div class="tarjeta-indicador nivel-{{ r.nivel_alerta }}">
       <div class="tarjeta-encabezado">
         <span class="indicador-codigo">{{ r.get_indicador_display }}</span>
@@ -86,6 +105,14 @@
         <img class="grafico" src="{{ item.grafico }}" alt="Gráfica {{ r.get_indicador_display }}">
       {% else %}
         <p class="sin-grafico">{{ r.detalle.motivo|default:"Indicador no aplicable para esta evaluación." }}</p>
+      {% endif %}
+      {% if g %}
+      <div class="glosario-indicador">
+        <p><strong>Qué mide:</strong> {{ g.que_mide }}</p>
+        <p><strong>Diagnóstico asociado:</strong> {{ g.diagnostico_asociado }}</p>
+        <p><strong>Si está bajo:</strong> {{ g.significado_bajo }}</p>
+        <p><strong>Si está alto:</strong> {{ g.significado_alto }}</p>
+      </div>
       {% endif %}
     </div>
     {% endwith %}

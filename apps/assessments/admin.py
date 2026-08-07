@@ -13,7 +13,13 @@ class ResultadoIndicadorInline(admin.TabularInline):
 class ReporteGeneradoInline(admin.StackedInline):
     model = ReporteGenerado
     extra = 0
-    readonly_fields = ("resumen_clinico", "pdf_file", "generado_en")
+    readonly_fields = (
+        "resumen_clinico",
+        "resumen_familiar",
+        "pdf_file",
+        "pdf_file_familiar",
+        "generado_en",
+    )
     can_delete = False
 
 

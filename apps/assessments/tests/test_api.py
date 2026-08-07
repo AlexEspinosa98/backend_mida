@@ -11,8 +11,15 @@ pytestmark = pytest.mark.django_db
 @pytest.fixture(autouse=True)
 def _mock_llm():
     """Los tests de API no necesitan un modelo GGUF real cargado -- se
-    mockea el único punto donde el grafo llama al LLM."""
-    with patch("apps.agents.nodes.synthesis.generar_texto", return_value="Resumen de prueba."):
+    mockean los dos puntos donde el grafo llama al LLM (síntesis clínica y
+    síntesis familiar, que corren en paralelo)."""
+    with (
+        patch("apps.agents.nodes.synthesis.generar_texto", return_value="Resumen clínico de prueba."),
+        patch(
+            "apps.agents.nodes.synthesis_familiar.generar_texto",
+            return_value="Resumen familiar de prueba.",
+        ),
+    ):
         yield
 
 
@@ -44,7 +51,9 @@ def test_post_evaluacion_devuelve_201_con_6_resultados():
     assert resp.status_code == 201, resp.data
     assert resp.data["estado"] == "completada"
     assert len(resp.data["resultados"]) == 6
-    assert resp.data["reporte"]["resumen_clinico"] == "Resumen de prueba."
+    assert resp.data["reporte"]["resumen_clinico"] == "Resumen clínico de prueba."
+    assert resp.data["reporte"]["resumen_familiar"] == "Resumen familiar de prueba."
+    assert resp.data["reporte_familiar_pdf_url"].endswith("/reporte-familiar/")
 
 
 def test_post_evaluacion_edema_fuerza_alerta_critica():
@@ -109,6 +118,18 @@ def test_get_reporte_pdf():
     eval_id = creado.data["id"]
 
     resp = client.get(f"/api/v1/evaluaciones/{eval_id}/reporte/")
+    assert resp.status_code == 200
+    assert resp["Content-Type"] == "application/pdf"
+    content = b"".join(resp.streaming_content)
+    assert content[:4] == b"%PDF"
+
+
+def test_get_reporte_familiar_pdf():
+    client = APIClient()
+    creado = client.post("/api/v1/evaluaciones/", _payload(), format="json")
+    eval_id = creado.data["id"]
+
+    resp = client.get(f"/api/v1/evaluaciones/{eval_id}/reporte-familiar/")
     assert resp.status_code == 200
     assert resp["Content-Type"] == "application/pdf"
     content = b"".join(resp.streaming_content)

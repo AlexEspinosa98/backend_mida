@@ -70,7 +70,7 @@ class ResultadoIndicadorSerializer(serializers.ModelSerializer):
 class ReporteGeneradoSerializer(serializers.ModelSerializer):
     class Meta:
         model = ReporteGenerado
-        fields = ["resumen_clinico", "generado_en"]
+        fields = ["resumen_clinico", "resumen_familiar", "generado_en"]
 
 
 class EvaluacionSerializer(serializers.ModelSerializer):
@@ -78,6 +78,7 @@ class EvaluacionSerializer(serializers.ModelSerializer):
     resultados = ResultadoIndicadorSerializer(many=True, read_only=True)
     reporte = ReporteGeneradoSerializer(read_only=True)
     reporte_pdf_url = serializers.SerializerMethodField()
+    reporte_familiar_pdf_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Evaluacion
@@ -98,6 +99,7 @@ class EvaluacionSerializer(serializers.ModelSerializer):
             "resultados",
             "reporte",
             "reporte_pdf_url",
+            "reporte_familiar_pdf_url",
             "creado_en",
         ]
 
@@ -106,3 +108,9 @@ class EvaluacionSerializer(serializers.ModelSerializer):
         if not request:
             return None
         return request.build_absolute_uri(f"/api/v1/evaluaciones/{obj.id}/reporte/")
+
+    def get_reporte_familiar_pdf_url(self, obj):
+        request = self.context.get("request")
+        if not request:
+            return None
+        return request.build_absolute_uri(f"/api/v1/evaluaciones/{obj.id}/reporte-familiar/")
