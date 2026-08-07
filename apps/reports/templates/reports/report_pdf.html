@@ -52,6 +52,12 @@
         <td>{{ evaluacion.talla_cm }} cm</td>
       </tr>
       <tr>
+        <td class="etiqueta">IMC calculado</td>
+        <td><strong>{{ imc_calculado|floatformat:2 }} kg/m²</strong></td>
+        <td class="etiqueta"></td>
+        <td></td>
+      </tr>
+      <tr>
         <td class="etiqueta">Perímetro cefálico</td>
         <td>{% if evaluacion.perimetro_cefalico_cm %}{{ evaluacion.perimetro_cefalico_cm }} cm{% else %}No registrado{% endif %}</td>
         <td class="etiqueta">Perímetro braquial</td>
@@ -85,7 +91,31 @@
   <section class="como-interpretar">
     <h2>Cómo interpretar este reporte</h2>
     <p>{{ explicacion_estandar_oms }}</p>
-    <p>{{ explicacion_desviacion }}</p>
+    {{ explicacion_desviacion|linebreaksbr }}
+  </section>
+
+  <section class="leyenda-colores">
+    <h2>Leyenda de colores</h2>
+    <table class="tabla-leyenda">
+      <thead>
+        <tr>
+          <th>Color</th>
+          <th>Nivel</th>
+          <th>Rango / criterio</th>
+          <th>Qué significa</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for l in leyenda_colores %}
+        <tr>
+          <td><span class="muestra-color muestra-{{ l.clave }}"></span></td>
+          <td><strong>{{ l.nivel }}</strong></td>
+          <td>{{ l.rango }}</td>
+          <td>{{ l.explicacion }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </section>
 
   <section class="indicadores">

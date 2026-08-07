@@ -90,12 +90,25 @@ def generar_grafico_indicador(sexo: str, indicador: str, resultado) -> str | Non
     fig.patch.set_facecolor(_SUPERFICIE)
     ax.set_facecolor(_SUPERFICIE)
 
-    # Zonas de riesgo sombreadas (convención clínica: verde -2..+2, ámbar
-    # 2..3, rojo >3 DE en valor absoluto) en vez de 7 líneas de un mismo
-    # tono -- más legible para un médico que una rampa secuencial sutil.
+    # Límites del eje Y calculados a mano (en vez de dejar que fill_between
+    # los extienda al infinito) para poder sombrear "más allá de 3 DE" con
+    # un límite finito y predecible.
+    y_min_datos = min(bandas[-3].min(), y_paciente)
+    y_max_datos = max(bandas[3].max(), y_paciente)
+    _pad = (y_max_datos - y_min_datos) * 0.08
+    y_lo, y_hi = y_min_datos - _pad, y_max_datos + _pad
+
+    # Zonas de riesgo sombreadas -- misma convención de color que las
+    # tarjetas/badges del reporte: verde -2..+2 (normal), ámbar 2..3
+    # (moderado, requiere seguimiento), rojo más allá de 3 DE (severo/
+    # crítico, requiere atención prioritaria). Ver "Leyenda de colores" en
+    # la plantilla del reporte técnico para la explicación completa.
+    ax.fill_between(xs, y_lo, bandas[-3], color=_ESTADO_CRITICAL, alpha=0.07, linewidth=0)
+    ax.fill_between(xs, bandas[3], y_hi, color=_ESTADO_CRITICAL, alpha=0.07, linewidth=0)
     ax.fill_between(xs, bandas[-3], bandas[-2], color=_ESTADO_WARNING, alpha=0.08, linewidth=0)
     ax.fill_between(xs, bandas[2], bandas[3], color=_ESTADO_WARNING, alpha=0.08, linewidth=0)
     ax.fill_between(xs, bandas[-2], bandas[2], color=_ESTADO_GOOD, alpha=0.06, linewidth=0)
+    ax.set_ylim(y_lo, y_hi)
 
     for z in (-3, 3):
         ax.plot(xs, bandas[z], color=_INK_MUTED, linewidth=0.8, linestyle=":")

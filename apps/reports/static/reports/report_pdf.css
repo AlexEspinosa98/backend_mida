@@ -102,11 +102,46 @@ h2 {
   margin: 0;
 }
 
-.como-interpretar p {
+.como-interpretar p,
+.como-interpretar {
   font-size: 9.5px;
   color: #52514e;
-  margin: 0 0 6px;
 }
+.como-interpretar p { margin: 0 0 6px; }
+
+.tabla-leyenda {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8.8px;
+}
+.tabla-leyenda th {
+  text-align: left;
+  color: #52514e;
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  border-bottom: 1px solid #c3c2b7;
+  padding: 4px 6px;
+}
+.tabla-leyenda td {
+  padding: 5px 6px;
+  border-bottom: 1px solid #e1e0d9;
+  vertical-align: top;
+}
+.muestra-color {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid rgba(11, 11, 11, 0.15);
+}
+.muestra-normal { background: #0ca30c; }
+.muestra-moderado { background: #fab219; }
+.muestra-severo { background: #d03b3b; }
+.muestra-critico { background: #d03b3b; }
+.muestra-no_aplica { background: #898781; }
+
+.indicadores { page-break-before: always; }
 
 .glosario-indicador {
   margin-top: 6px;

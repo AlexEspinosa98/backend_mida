@@ -5,7 +5,12 @@ from django.template.loader import render_to_string
 from weasyprint import CSS, HTML
 
 from apps.agents.clinical_actions import sugerencias_clinicas, sugerencias_familiares
-from apps.who_standards.glossary import EXPLICACION_DESVIACION_ESTANDAR, EXPLICACION_ESTANDAR_OMS, GLOSARIO_INDICADORES
+from apps.who_standards.glossary import (
+    EXPLICACION_DESVIACION_ESTANDAR,
+    EXPLICACION_ESTANDAR_OMS,
+    GLOSARIO_INDICADORES,
+    LEYENDA_COLORES,
+)
 
 from .charts import generar_grafico_indicador
 
@@ -47,6 +52,11 @@ def _reconstruir_hallazgos(evaluacion, resultados_ordenados) -> dict:
     return hallazgos
 
 
+def _imc_calculado(evaluacion) -> float:
+    talla_m = float(evaluacion.talla_cm) / 100.0
+    return float(evaluacion.peso_kg) / (talla_m**2)
+
+
 def generar_pdf_evaluacion(evaluacion) -> bytes:
     resultados_ordenados = _resultados_ordenados(evaluacion)
     hallazgos = _reconstruir_hallazgos(evaluacion, resultados_ordenados)
@@ -64,11 +74,13 @@ def generar_pdf_evaluacion(evaluacion) -> bytes:
         "evaluacion": evaluacion,
         "paciente": evaluacion.paciente,
         "items": items,
+        "imc_calculado": _imc_calculado(evaluacion),
         "resumen_clinico": getattr(evaluacion.reporte, "resumen_clinico", ""),
         "alerta_critica": evaluacion.alerta_critica,
         "sugerencias": hallazgos["sugerencias"],
         "explicacion_estandar_oms": EXPLICACION_ESTANDAR_OMS,
         "explicacion_desviacion": EXPLICACION_DESVIACION_ESTANDAR,
+        "leyenda_colores": LEYENDA_COLORES,
     }
     html_str = render_to_string("reports/report_pdf.html", contexto)
 

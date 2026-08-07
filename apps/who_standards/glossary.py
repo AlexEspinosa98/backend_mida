@@ -25,16 +25,87 @@ EXPLICACION_ESTANDAR_OMS = (
 )
 
 EXPLICACION_DESVIACION_ESTANDAR = (
-    "Cada gráfica muestra una línea central (la mediana OMS, el valor típico para "
-    "esa edad) y bandas a su alrededor marcadas en desviaciones estándar (DE o "
-    "'z'): +1/-1, +2/-2 y +3/-3. Mientras más lejos esté el punto del niño de la "
-    "línea central, mayor es la diferencia respecto al patrón esperado. Entre -2 y "
-    "+2 DE se considera dentro del rango normal para la mayoría de los "
-    "indicadores. Pasar de -2 DE (hacia abajo) o +2 DE (hacia arriba, según el "
-    "indicador) suele marcar el inicio de un hallazgo que amerita seguimiento; "
-    "pasar de -3 o +3 DE indica una desviación severa que amerita atención "
-    "médica prioritaria."
+    "¿Qué es la 'desviación estándar' (DE, también llamada 'z-score' o simplemente "
+    "'z')? Es una forma de medir qué tan lejos está una medición del valor típico "
+    "('mediana') para la edad y sexo del niño o niña, usando como unidad la "
+    "variación normal que existe entre niños sanos -- no centímetros ni "
+    "kilogramos directamente, sino 'cuántos pasos' de esa variación normal hay "
+    "de distancia. Un z de 0 significa exactamente el valor típico; un z de -1 "
+    "significa una desviación estándar por debajo del típico; un z de -2, dos "
+    "desviaciones estándar por debajo; y así sucesivamente. El signo (+/-) indica "
+    "si está por encima o por debajo del valor típico."
+    "\n\n"
+    "Cada gráfica muestra una línea central (la mediana OMS) y bandas a su "
+    "alrededor marcadas en desviaciones estándar: +1/-1, +2/-2 y +3/-3. Mientras "
+    "más lejos esté el punto del niño de la línea central, mayor es la diferencia "
+    "respecto al patrón esperado. Entre -2 y +2 DE se considera dentro del rango "
+    "normal para la mayoría de los indicadores. Pasar de -2 DE (hacia abajo) o "
+    "+2 DE (hacia arriba, según el indicador) suele marcar el inicio de un "
+    "hallazgo que amerita seguimiento; pasar de -3 o +3 DE indica una desviación "
+    "severa que amerita atención médica prioritaria."
 )
+
+# Explica el mismo significado clínico que classify.py aplica en código, pero
+# en prosa para el reporte -- debe mantenerse alineado con las bandas reales
+# de apps/who_standards/classify.py si esas bandas cambian.
+LEYENDA_COLORES = [
+    {
+        "clave": "normal",
+        "color": "verde",
+        "nivel": "Normal",
+        "rango": "Entre -2 y +2 DE",
+        "explicacion": (
+            "El valor está dentro de la variación esperada para la edad y sexo del "
+            "niño o niña. No se requiere ninguna acción adicional a partir de este "
+            "hallazgo."
+        ),
+    },
+    {
+        "clave": "moderado",
+        "color": "amarillo",
+        "nivel": "Moderado",
+        "rango": "Entre -3 y -2 DE, o entre +2 y +3 DE (según el indicador)",
+        "explicacion": (
+            "El valor se aleja de forma moderada del patrón esperado. Amerita "
+            "seguimiento cercano (repetir el control en unas semanas) aunque no "
+            "sea, por sí solo, una urgencia."
+        ),
+    },
+    {
+        "clave": "severo",
+        "color": "rojo (severo)",
+        "nivel": "Severo",
+        "rango": "Más allá de -3 o +3 DE",
+        "explicacion": (
+            "Desviación importante del patrón esperado. Amerita remisión "
+            "prioritaria y no debe esperar al próximo control de rutina."
+        ),
+    },
+    {
+        "clave": "critico",
+        "color": "rojo (crítico)",
+        "nivel": "Crítico",
+        "rango": (
+            "Edema bilateral presente, o perímetro braquial menor a 11.5cm "
+            "(bypass por corte absoluto, independiente del z-score)"
+        ),
+        "explicacion": (
+            "Signo de emergencia nutricional reconocido por la OMS/UNICEF "
+            "independientemente de los demás hallazgos -- amerita remisión médica "
+            "inmediata, sin esperar estudios adicionales."
+        ),
+    },
+    {
+        "clave": "no_aplica",
+        "color": "gris",
+        "nivel": "No aplica",
+        "rango": "Fuera del rango de edad cubierto por el indicador, o dato no proporcionado",
+        "explicacion": (
+            "No se pudo calcular este indicador para esta evaluación (por ejemplo, "
+            "el perímetro braquial no aplica antes de los 3 meses de edad)."
+        ),
+    },
+]
 
 GLOSARIO_INDICADORES: dict[str, dict] = {
     "TE": {
