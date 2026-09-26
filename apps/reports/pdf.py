@@ -12,6 +12,9 @@ from apps.who_standards.glossary import (
     LEYENDA_COLORES,
 )
 from apps.who_standards.local_patterns import EXPLICACION_METODOLOGIA as EXPLICACION_PATRON_LOCAL
+from apps.who_standards.local_patterns import (
+    EXPLICACION_METODOLOGIA_FAMILIAR as EXPLICACION_PATRON_LOCAL_FAMILIAR,
+)
 
 from .charts import generar_grafico_comunitario, generar_grafico_oms
 from .interpretacion import construir_conclusion
@@ -131,14 +134,20 @@ def generar_pdf_familiar_evaluacion(evaluacion) -> bytes:
     resultados_ordenados = _resultados_ordenados(evaluacion)
     hallazgos = _reconstruir_hallazgos(evaluacion, resultados_ordenados)
 
-    items = [
-        {
+    items = []
+    for r in resultados_ordenados:
+        comunitario = (r.detalle or {}).get("comunitario")
+        item = {
             "resultado": r,
             "semaforo": _SEMAFORO.get(r.nivel_alerta, _SEMAFORO["no_aplica"]),
             "nombre": GLOSARIO_INDICADORES.get(r.indicador, {}).get("nombre", r.indicador),
         }
-        for r in resultados_ordenados
-    ]
+        if comunitario:
+            item["semaforo_comunitario"] = _SEMAFORO.get(
+                comunitario.get("nivel_alerta"), _SEMAFORO["no_aplica"]
+            )
+            item["etnia_comunitaria"] = comunitario["etnia"]
+        items.append(item)
 
     contexto = {
         "evaluacion": evaluacion,
@@ -148,6 +157,9 @@ def generar_pdf_familiar_evaluacion(evaluacion) -> bytes:
         "alerta_critica": evaluacion.alerta_critica,
         "sugerencias": hallazgos["sugerencias_familiares"],
         "explicacion_estandar_oms": EXPLICACION_ESTANDAR_OMS,
+        "explicacion_patron_local": (
+            EXPLICACION_PATRON_LOCAL_FAMILIAR if evaluacion.paciente.etnia != "ninguna" else None
+        ),
         "plan_nutricional": getattr(evaluacion.reporte, "plan_nutricional", None),
         "tips_nutricionales": getattr(evaluacion.reporte, "tips_nutricionales", ""),
         "notas_plan_nutricional": _notas_plan_nutricional(

@@ -75,6 +75,12 @@ h2 {
   font-weight: 600;
 }
 
+.instrumentos p {
+  font-size: 9px;
+  color: #52514e;
+  margin: 0;
+}
+
 .resumen-clinico p {
   background: #f9f9f7;
   border-left: 3px solid #256abf;
@@ -180,6 +186,23 @@ h2 {
   font-weight: 700;
   color: #256abf;
   white-space: nowrap;
+}
+.tabla-plan-nutricional td.total-dia {
+  font-weight: 700;
+  white-space: nowrap;
+}
+.tabla-plan-nutricional .incompleto {
+  font-weight: 400;
+  font-style: italic;
+  color: #898781;
+}
+.resumen-nutricional {
+  font-size: 8.5px;
+  color: #52514e;
+  background: #f9f9f7;
+  border-left: 3px solid #0ca30c;
+  padding: 8px 10px;
+  margin: 0 0 8px;
 }
 .notas-plan-nutricional {
   font-size: 8px;
@@ -323,6 +346,11 @@ h2 {
   font-size: 8px;
   color: #52514e;
   font-style: italic;
+}
+.aviso-datos {
+  font-size: 8px;
+  color: #52514e;
+  margin-top: 4px;
 }
 .marca-agua {
   font-size: 7.5px;

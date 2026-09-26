@@ -68,6 +68,27 @@ h2 {
   color: #52514e;
 }
 
+.instrumentos p {
+  font-size: 9.5px;
+  color: #898781;
+  margin: 6px 0 0;
+}
+
+.patron-local {
+  background: #f3f1fb;
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-top: 10px;
+}
+.patron-local h2 {
+  margin-top: 0;
+}
+.patron-local p {
+  font-size: 10.5px;
+  color: #33285f;
+  margin: 0;
+}
+
 .resumen-familiar p {
   font-size: 11.5px;
 }
@@ -104,6 +125,19 @@ h2 {
 }
 .semaforo-rojo .texto-semaforo { color: #d03b3b; font-weight: 700; }
 .semaforo-amarillo .texto-semaforo { color: #8a5a00; font-weight: 700; }
+
+.fila-comunitaria {
+  margin-left: 20px;
+  margin-top: -3px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  border-style: dashed;
+}
+.fila-comunitaria .nombre-medida {
+  font-weight: 400;
+  font-style: italic;
+  font-size: 10px;
+}
 
 .lista-que-hacer {
   padding-left: 18px;
@@ -143,6 +177,23 @@ h2 {
   color: #256abf;
   white-space: nowrap;
 }
+.tabla-plan-nutricional td.total-dia {
+  font-weight: 700;
+  white-space: nowrap;
+}
+.tabla-plan-nutricional .incompleto {
+  font-weight: 400;
+  font-style: italic;
+  color: #898781;
+}
+.resumen-nutricional {
+  font-size: 9.5px;
+  color: #52514e;
+  background: #f9f9f7;
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin: 0 0 10px;
+}
 .notas-plan-nutricional {
   font-size: 8.5px;
   color: #52514e;
@@ -159,6 +210,11 @@ h2 {
   font-size: 9px;
   color: #52514e;
   font-style: italic;
+}
+.aviso-datos {
+  font-size: 8.5px;
+  color: #52514e;
+  margin-top: 5px;
 }
 .marca-agua {
   font-size: 8px;

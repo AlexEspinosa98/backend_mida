@@ -16,9 +16,13 @@ def _catalogo_limpio():
     Alimento.objects.all().delete()
 
 
-def _crear(nombre, grupo, edad_minima_meses=6, disponible=True):
+def _crear(nombre, grupo, edad_minima_meses=6, disponible=True, **extra):
     return Alimento.objects.create(
-        nombre=nombre, grupo=grupo, edad_minima_meses=edad_minima_meses, disponible=disponible
+        nombre=nombre,
+        grupo=grupo,
+        edad_minima_meses=edad_minima_meses,
+        disponible=disponible,
+        **extra,
     )
 
 
@@ -125,3 +129,105 @@ def test_resumen_disponibilidad_respeta_disponible_y_edad():
     assert "Banano" in resumen["fruta"]
     assert "Mango dañado" not in resumen["fruta"]
     assert "Leche entera" not in resumen["lacteo"]
+
+
+def test_alimento_region_especifica_solo_aparece_para_su_etnia():
+    _crear("Banano", "fruta")
+    _crear("Fruto Kogui", "fruta", region_especifica="kogui")
+    _crear("Pollo", "proteina")
+    _crear("Arroz", "cereal")
+    _crear("Zanahoria", "verdura")
+    _crear("Yogur", "lacteo")
+
+    sin_etnia = resumen_disponibilidad(24)
+    assert "Fruto Kogui" not in sin_etnia["fruta"]
+
+    otra_etnia = resumen_disponibilidad(24, etnia="arhuaco")
+    assert "Fruto Kogui" not in otra_etnia["fruta"]
+
+    misma_etnia = resumen_disponibilidad(24, etnia="kogui")
+    assert "Fruto Kogui" in misma_etnia["fruta"]
+    assert "Banano" in misma_etnia["fruta"]  # el catálogo general se sigue ofreciendo también
+
+
+def test_alimento_excluido_para_region_no_aparece_para_esa_etnia():
+    _crear("Kumis", "lacteo", excluido_para_region="kogui")
+    _crear("Majule", "lacteo", region_especifica="kogui")
+    _crear("Pollo", "proteina")
+    _crear("Arroz", "cereal")
+    _crear("Zanahoria", "verdura")
+    _crear("Banano", "fruta")
+
+    para_kogui = resumen_disponibilidad(24, etnia="kogui")
+    assert "Kumis" not in para_kogui["lacteo"]
+    assert "Majule" in para_kogui["lacteo"]
+
+    para_otra = resumen_disponibilidad(24, etnia="arhuaco")
+    assert "Kumis" in para_otra["lacteo"]  # la exclusión es solo para kogui
+    assert "Majule" not in para_otra["lacteo"]  # y el reemplazo es solo para kogui
+
+    sin_etnia = resumen_disponibilidad(24)
+    assert "Kumis" in sin_etnia["lacteo"]  # el catálogo general no se ve afectado
+
+
+def test_alimentos_generales_se_ofrecen_a_cualquier_etnia():
+    _crear("Banano", "fruta")
+    _crear("Pollo", "proteina")
+    _crear("Arroz", "cereal")
+    _crear("Zanahoria", "verdura")
+    _crear("Yogur", "lacteo")
+
+    resumen = resumen_disponibilidad(24, etnia="kogui")
+    assert "Banano" in resumen["fruta"]
+
+
+def test_totales_nutricionales_por_dia_y_promedio_semanal():
+    _crear(
+        "Banano", "fruta",
+        porcion_referencia_g=100, calorias_kcal_100g=90, proteina_g_100g=1,
+        carbohidratos_g_100g=20, grasa_g_100g=0.5,
+    )
+    _crear(
+        "Pollo", "proteina",
+        porcion_referencia_g=100, calorias_kcal_100g=160, proteina_g_100g=30,
+        carbohidratos_g_100g=0, grasa_g_100g=4,
+    )
+    _crear(
+        "Arroz", "cereal",
+        porcion_referencia_g=100, calorias_kcal_100g=130, proteina_g_100g=3,
+        carbohidratos_g_100g=28, grasa_g_100g=0.3,
+    )
+    _crear("Zanahoria", "verdura")  # sin datos nutricionales -> día queda incompleto
+    _crear(
+        "Yogur", "lacteo",
+        porcion_referencia_g=100, calorias_kcal_100g=60, proteina_g_100g=3.5,
+        carbohidratos_g_100g=5, grasa_g_100g=3,
+    )
+
+    plan = generar_plan_semanal(24)
+    lunes = plan["dias"][0]
+
+    banano = lunes["comidas"]["Desayuno"][1]  # Desayuno: cereal, fruta, lacteo
+    assert banano["nombre"] == "Banano"
+    assert banano["calorias_kcal"] == 90.0
+    assert banano["porcion_g"] == 100
+
+    # Zanahoria (sin datos) participa en Almuerzo -> el total del día es incompleto.
+    assert lunes["totales_nutricionales"]["datos_completos"] is False
+    assert lunes["totales_nutricionales"]["calorias_kcal"] > 0
+
+    assert plan["promedio_diario"] is not None
+    assert plan["promedio_diario"]["datos_completos"] is False
+    assert plan["promedio_diario"]["calorias_kcal"] > 0
+
+
+def test_alimento_sin_porcion_referencia_no_calcula_calorias():
+    _crear("Banano", "fruta", calorias_kcal_100g=90)  # sin porcion_referencia_g
+    _crear("Pollo", "proteina")
+    _crear("Arroz", "cereal")
+    _crear("Zanahoria", "verdura")
+    _crear("Yogur", "lacteo")
+
+    plan = generar_plan_semanal(24)
+    banano = plan["dias"][0]["comidas"]["Desayuno"][1]
+    assert banano["calorias_kcal"] is None

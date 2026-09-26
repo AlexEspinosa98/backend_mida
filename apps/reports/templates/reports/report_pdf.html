@@ -76,6 +76,19 @@
     </table>
   </section>
 
+  <section class="instrumentos">
+    <h2>Instrumentos y método de medición</h2>
+    <p>
+      Peso: balanza/báscula seca o calibrada.
+      Talla: {% if evaluacion.tipo_medicion_talla == "acostado" %}infantómetro, con el niño o niña en posición acostada{% else %}tallímetro o estadiómetro, con el niño o niña de pie{% endif %}.
+      {% if evaluacion.perimetro_cefalico_cm %}Perímetro cefálico: cinta métrica no elástica.{% endif %}
+      {% if evaluacion.perimetro_braquial_cm %}Perímetro braquial: cinta MUAC (Mid-Upper Arm Circumference), en el punto medio del brazo izquierdo relajado.{% endif %}
+      Verifique la calibración de la balanza y el estado de la cinta MUAC antes de cada
+      evaluación -- instrumental no calibrado o una técnica de medición inadecuada pueden
+      alterar la clasificación de cualquiera de los indicadores.
+    </p>
+  </section>
+
   <section class="resumen-clinico">
     <h2>Impresión clínica y sugerencias</h2>
     <p>{{ resumen_clinico|linebreaksbr }}</p>
@@ -145,20 +158,41 @@
       {% endif %}
       <table class="tabla-plan-nutricional">
         <thead>
-          <tr><th>Día</th><th>Desayuno</th><th>Almuerzo</th><th>Merienda</th><th>Cena</th></tr>
+          <tr>
+            <th>Día</th><th>Desayuno</th><th>Almuerzo</th><th>Merienda</th><th>Cena</th>
+            <th>Total del día (aprox.)</th>
+          </tr>
         </thead>
         <tbody>
           {% for dia in plan_nutricional.dias %}
           <tr>
             <td class="dia">{{ dia.dia }}</td>
-            <td>{% for a in dia.comidas.Desayuno %}{{ a.nombre }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
-            <td>{% for a in dia.comidas.Almuerzo %}{{ a.nombre }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
-            <td>{% for a in dia.comidas.Merienda %}{{ a.nombre }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
-            <td>{% for a in dia.comidas.Cena %}{{ a.nombre }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+            <td>{% for a in dia.comidas.Desayuno %}{{ a.nombre }}{% if a.porcion_g %} ({{ a.porcion_g }}g{% if a.calorias_kcal %}, {{ a.calorias_kcal|floatformat:0 }} kcal{% endif %}){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+            <td>{% for a in dia.comidas.Almuerzo %}{{ a.nombre }}{% if a.porcion_g %} ({{ a.porcion_g }}g{% if a.calorias_kcal %}, {{ a.calorias_kcal|floatformat:0 }} kcal{% endif %}){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+            <td>{% for a in dia.comidas.Merienda %}{{ a.nombre }}{% if a.porcion_g %} ({{ a.porcion_g }}g{% if a.calorias_kcal %}, {{ a.calorias_kcal|floatformat:0 }} kcal{% endif %}){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+            <td>{% for a in dia.comidas.Cena %}{{ a.nombre }}{% if a.porcion_g %} ({{ a.porcion_g }}g{% if a.calorias_kcal %}, {{ a.calorias_kcal|floatformat:0 }} kcal{% endif %}){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+            <td class="total-dia">
+              {% if dia.totales_nutricionales.calorias_kcal %}{{ dia.totales_nutricionales.calorias_kcal|floatformat:0 }} kcal{% if not dia.totales_nutricionales.datos_completos %} <span class="incompleto">(incompleto)</span>{% endif %}{% else %}—{% endif %}
+            </td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
+      {% if plan_nutricional.promedio_diario %}
+      <p class="resumen-nutricional">
+        <strong>Promedio diario aproximado del plan:</strong>
+        {{ plan_nutricional.promedio_diario.calorias_kcal|floatformat:0 }} kcal ·
+        {{ plan_nutricional.promedio_diario.proteina_g|floatformat:1 }} g proteína ·
+        {{ plan_nutricional.promedio_diario.carbohidratos_g|floatformat:1 }} g carbohidratos ·
+        {{ plan_nutricional.promedio_diario.grasa_g|floatformat:1 }} g grasa
+        {% if not plan_nutricional.promedio_diario.datos_completos %} -- cálculo incompleto: uno o más alimentos del plan no tienen información nutricional registrada en el catálogo, así que la cifra real es mayor a la mostrada{% endif %}.
+        Estos valores son una referencia aproximada, calculada a partir de porciones y tablas
+        de composición de alimentos estándar (no un análisis de laboratorio de este niño ni de
+        estos alimentos puntuales) -- deben ser validados y ajustados por un profesional de
+        nutrición según las necesidades específicas del niño o niña, y no reemplazan una
+        valoración nutricional individual.
+      </p>
+      {% endif %}
       {% if notas_plan_nutricional %}
       <ul class="notas-plan-nutricional">
         {% for n in notas_plan_nutricional %}
@@ -232,9 +266,20 @@
 
   <footer class="pie">
     <p class="aviso">
-      Apoyo a la decisión clínica — no reemplaza el juicio profesional médico.
-      Los z-scores se calcularon con las tablas de referencia oficiales de la
-      Organización Mundial de la Salud (WHO Child Growth Standards, 2006).
+      MIDA es un prototipo de apoyo a la decisión y sugerencia de mejora, pensado para
+      estar al alcance de cualquier persona que realice tamizaje nutricional infantil
+      (personal comunitario, cuidadores, personal de salud no especializado) — no
+      reemplaza a un profesional de la salud ni su juicio clínico. Todo hallazgo
+      relevante debe ser confirmado y manejado por personal médico calificado. Los
+      z-scores se calcularon con las tablas de referencia oficiales de la Organización
+      Mundial de la Salud (WHO Child Growth Standards, 2006).
+    </p>
+    <p class="aviso-datos">
+      Este reporte contiene datos personales de un niño o niña, protegidos conforme a la
+      normativa de protección de datos y de la infancia aplicable (Ley 1581 de 2012 y
+      Código de la Infancia y la Adolescencia). Es de uso exclusivo del personal
+      autorizado y del acudiente del paciente — manéjelo de forma confidencial y no lo
+      comparta sin la autorización correspondiente.
     </p>
     <p class="marca-agua">Generado por MIDA el {{ evaluacion.reporte.generado_en|date:"d/m/Y H:i" }}</p>
   </footer>

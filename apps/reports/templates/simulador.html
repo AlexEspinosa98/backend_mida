@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MIDA — Simulador de frontend</title>
+<style>
+  :root {
+    --azul: #256abf;
+    --verde: #0ca30c;
+    --amarillo: #fab219;
+    --rojo: #d03b3b;
+    --gris: #898781;
+    --borde: #e1e0d9;
+    --fondo-suave: #f9f9f7;
+    --texto: #0b0b0b;
+    --texto-suave: #52514e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", system-ui, sans-serif;
+    margin: 0;
+    background: #f4f3ef;
+    color: var(--texto);
+  }
+  header {
+    background: white;
+    border-bottom: 2px solid var(--azul);
+    padding: 14px 20px;
+  }
+  header h1 { margin: 0; font-size: 18px; color: var(--azul); }
+  header p { margin: 2px 0 0; font-size: 12px; color: var(--texto-suave); }
+  .aviso-simulador {
+    background: #fff8e8;
+    border-bottom: 1px solid var(--amarillo);
+    color: #6b4a00;
+    font-size: 11.5px;
+    padding: 6px 20px;
+  }
+  nav.tabs {
+    display: flex;
+    gap: 4px;
+    padding: 10px 20px 0;
+    background: white;
+  }
+  nav.tabs button {
+    border: 1px solid var(--borde);
+    border-bottom: none;
+    background: #f4f3ef;
+    padding: 8px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 6px 6px 0 0;
+    color: var(--texto-suave);
+  }
+  nav.tabs button.activa {
+    background: white;
+    color: var(--azul);
+    font-weight: 700;
+  }
+  main { max-width: 980px; margin: 0 auto; padding: 20px; }
+  .panel { display: none; background: white; border: 1px solid var(--borde); border-radius: 0 8px 8px 8px; padding: 20px; }
+  .panel.activa { display: block; }
+  fieldset { border: 1px solid var(--borde); border-radius: 6px; margin-bottom: 14px; }
+  legend { font-size: 12px; font-weight: 700; color: var(--texto-suave); padding: 0 6px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; padding: 8px; }
+  label { display: block; font-size: 11.5px; color: var(--texto-suave); margin-bottom: 3px; }
+  input, select { width: 100%; padding: 6px 8px; border: 1px solid var(--borde); border-radius: 4px; font-size: 13px; }
+  .check { display: flex; align-items: center; gap: 6px; }
+  .check input { width: auto; }
+  button.primario {
+    background: var(--azul); color: white; border: none; padding: 10px 20px;
+    border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: 600;
+  }
+  button.primario:disabled { background: var(--gris); cursor: wait; }
+  button.secundario {
+    background: white; color: var(--azul); border: 1px solid var(--azul); padding: 6px 12px;
+    border-radius: 6px; font-size: 12px; cursor: pointer;
+  }
+  .estado { font-size: 12.5px; margin: 10px 0; color: var(--texto-suave); }
+  .estado.error { color: var(--rojo); font-weight: 600; }
+  .banner-alerta {
+    background: #fdecec; border: 1px solid var(--rojo); color: #7a1f1f;
+    padding: 10px 14px; border-radius: 6px; font-weight: 700; margin-bottom: 12px; font-size: 13px;
+  }
+  .resultado-box { background: var(--fondo-suave); border-left: 3px solid var(--azul); padding: 10px 14px; margin-bottom: 14px; font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-bottom: 14px; }
+  th { text-align: left; font-size: 10.5px; text-transform: uppercase; color: var(--texto-suave); border-bottom: 1px solid var(--borde); padding: 6px; }
+  td { padding: 7px 6px; border-bottom: 1px solid var(--borde); vertical-align: top; }
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 11px; font-weight: 700; color: white; }
+  .badge-normal { background: var(--verde); }
+  .badge-moderado { background: var(--amarillo); color: #3a2b00; }
+  .badge-severo, .badge-critico { background: var(--rojo); }
+  .badge-no_aplica { background: var(--gris); }
+  .badge-general { background: #4a3aa7; }
+  .enlaces-pdf { display: flex; gap: 10px; margin-top: 6px; }
+  .enlaces-pdf a {
+    display: inline-block; background: var(--azul); color: white; text-decoration: none;
+    padding: 8px 14px; border-radius: 6px; font-size: 12.5px; font-weight: 600;
+  }
+  .enlaces-pdf a.familiar { background: #0ca30c; }
+  .nota-fuente { font-size: 11px; color: var(--gris); margin-top: -4px; margin-bottom: 12px; }
+  .catalogo-controles { display: flex; gap: 12px; align-items: flex-end; margin-bottom: 16px; flex-wrap: wrap; }
+  .catalogo-controles > div { min-width: 160px; }
+  h2.grupo { font-size: 13px; color: var(--azul); border-bottom: 1px solid var(--borde); padding-bottom: 4px; margin: 18px 0 6px; }
+  ul.alimentos-grupo { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+  ul.alimentos-grupo li {
+    border: 1px solid var(--borde); border-radius: 14px; padding: 5px 10px; font-size: 12px;
+    display: flex; align-items: center; gap: 6px; background: var(--fondo-suave);
+  }
+  pre.json-crudo { background: #14181f; color: #d7dce3; padding: 12px; border-radius: 6px; font-size: 11px; overflow-x: auto; max-height: 260px; }
+  details summary { cursor: pointer; font-size: 12px; color: var(--texto-suave); margin: 10px 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>MIDA — Simulador de frontend</h1>
+  <p>Consume la API real de este backend (mismo origen, sin mocks) para probar el flujo antes de construir el frontend definitivo.</p>
+</header>
+<div class="aviso-simulador">
+  ⚠ Esto NO es la interfaz final -- es una página de prueba de un solo archivo
+  (<code>apps/reports/templates/simulador.html</code>) para validar la interacción médico↔API↔PDF
+  y el efecto del catálogo por comunidad, y así alinear el frontend real antes de construirlo.
+</div>
+
+<nav class="tabs">
+  <button class="activa" data-tab="medico">Parte del médico</button>
+  <button data-tab="admin">Parte del admin (catálogo por comunidad)</button>
+</nav>
+
+<main>
+
+  <!-- ============ TAB MÉDICO ============ -->
+  <section id="tab-medico" class="panel activa">
+    <p class="estado">Crea una evaluación real contra <code>POST /api/v1/evaluaciones/</code>. El resumen clínico, el familiar y los tips
+    del plan los redacta el LLM local -- puede tardar uno o dos minutos.</p>
+
+    <form id="form-evaluacion">
+      <fieldset>
+        <legend>Paciente</legend>
+        <div class="grid">
+          <div><label>Nombres</label><input name="paciente.nombres" value="Paciente"></div>
+          <div><label>Apellidos</label><input name="paciente.apellidos" value="De Prueba"></div>
+          <div><label>Documento (opcional)</label><input name="paciente.documento_identidad"></div>
+          <div><label>Fecha de nacimiento (opcional)</label><input type="date" name="paciente.fecha_nacimiento"></div>
+          <div>
+            <label>Etnia</label>
+            <select name="paciente.etnia">
+              <option value="ninguna">Ninguna / no indígena</option>
+              <option value="kogui">Kogui</option>
+              <option value="arhuaco">Arhuaco</option>
+            </select>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Mediciones</legend>
+        <div class="grid">
+          <div>
+            <label>Sexo</label>
+            <select name="sexo"><option value="F">Femenino</option><option value="M">Masculino</option></select>
+          </div>
+          <div><label>Edad (meses, 0-60)</label><input type="number" step="0.1" name="edad_meses" value="24" required></div>
+          <div><label>Peso (kg)</label><input type="number" step="0.01" name="peso_kg" value="11.5" required></div>
+          <div><label>Talla (cm)</label><input type="number" step="0.1" name="talla_cm" value="85" required></div>
+          <div>
+            <label>Tipo de medición</label>
+            <select name="tipo_medicion_talla">
+              <option value="de_pie">Estatura (de pie)</option>
+              <option value="acostado">Longitud (acostado)</option>
+            </select>
+          </div>
+          <div><label>Perímetro cefálico (cm, opcional)</label><input type="number" step="0.1" name="perimetro_cefalico_cm" value="47"></div>
+          <div><label>Perímetro braquial (cm, opcional)</label><input type="number" step="0.1" name="perimetro_braquial_cm" value="14"></div>
+          <div class="check"><input type="checkbox" name="edema_bilateral" id="edema"><label for="edema" style="margin:0">Edema bilateral</label></div>
+        </div>
+      </fieldset>
+
+      <button class="primario" type="submit" id="btn-enviar">Generar evaluación</button>
+      <span class="estado" id="estado-medico"></span>
+    </form>
+
+    <div id="resultado-medico" style="margin-top: 20px;"></div>
+  </section>
+
+  <!-- ============ TAB ADMIN / CATÁLOGO ============ -->
+  <section id="tab-admin" class="panel">
+    <p class="estado">
+      La gestión real del catálogo (crear/editar alimentos, marcar disponible, región específica, exclusiones,
+      calorías/porción) se hace en el admin de Django, no aquí:
+      <a class="secundario" href="/admin/nutrition/alimento/" target="_blank" style="text-decoration:none; display:inline-block; margin-top:6px;">Abrir /admin/nutrition/alimento/ →</a>
+    </p>
+    <p class="estado">Esto de acá solo <strong>previsualiza el efecto</strong> de esa configuración: qué catálogo
+      efectivo (<code>GET /api/v1/nutricion/catalogo/</code>, solo lectura) vería un paciente según su edad y etnia
+      -- catálogo general + alimentos propios de su comunidad, menos los excluidos para ella.</p>
+
+    <div class="catalogo-controles">
+      <div>
+        <label>Edad (meses)</label>
+        <input type="number" step="0.1" id="catalogo-edad" value="24">
+      </div>
+      <div>
+        <label>Etnia del paciente</label>
+        <select id="catalogo-etnia">
+          <option value="">Ninguna (catálogo general)</option>
+          <option value="kogui">Kogui</option>
+          <option value="arhuaco">Arhuaco</option>
+        </select>
+      </div>
+      <button class="primario" id="btn-catalogo" type="button">Previsualizar catálogo</button>
+    </div>
+
+    <div id="resultado-catalogo"></div>
+  </section>
+
+</main>
+
+<script>
+const API = "/api/v1";
+const NOMBRES_GRUPO = { fruta: "Frutas", verdura: "Verduras", proteina: "Proteínas", cereal: "Cereales / tubérculos", lacteo: "Lácteos" };
+
+// ---- tabs ----
+document.querySelectorAll("nav.tabs button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("nav.tabs button").forEach(b => b.classList.remove("activa"));
+    document.querySelectorAll(".panel").forEach(p => p.classList.remove("activa"));
+    btn.classList.add("activa");
+    document.getElementById("tab-" + btn.dataset.tab).classList.add("activa");
+  });
+});
+
+// ---- helpers ----
+function setAnidado(obj, ruta, valor) {
+  const partes = ruta.split(".");
+  let cur = obj;
+  for (let i = 0; i < partes.length - 1; i++) {
+    cur[partes[i]] = cur[partes[i]] || {};
+    cur = cur[partes[i]];
+  }
+  cur[partes[partes.length - 1]] = valor;
+}
+
+function badgeNivel(nivel) {
+  return `<span class="badge badge-${nivel}">${nivel.replace("_", " ")}</span>`;
+}
+
+// ---- formulario médico ----
+document.getElementById("form-evaluacion").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const form = ev.target;
+  const btn = document.getElementById("btn-enviar");
+  const estado = document.getElementById("estado-medico");
+  const resultado = document.getElementById("resultado-medico");
+
+  const payload = {};
+  for (const el of form.elements) {
+    if (!el.name) continue;
+    if (el.type === "checkbox") { setAnidado(payload, el.name, el.checked); continue; }
+    if (el.value === "") continue; // deja los opcionales fuera si están vacíos
+    setAnidado(payload, el.name, el.value);
+  }
+  if (payload.paciente && !payload.paciente.documento_identidad) delete payload.paciente.documento_identidad;
+  if (payload.paciente && Object.keys(payload.paciente).length === 0) delete payload.paciente;
+
+  btn.disabled = true;
+  estado.className = "estado";
+  estado.textContent = "Generando... el LLM local puede tardar 1-2 minutos, no cierres esta pestaña.";
+  resultado.innerHTML = "";
+
+  try {
+    const resp = await fetch(`${API}/evaluaciones/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const datos = await resp.json();
+    if (!resp.ok) {
+      estado.className = "estado error";
+      estado.textContent = `Error ${resp.status}: ` + JSON.stringify(datos);
+      return;
+    }
+    estado.textContent = `Evaluación ${datos.id} — estado: ${datos.estado}`;
+    renderResultadoMedico(resultado, datos);
+  } catch (err) {
+    estado.className = "estado error";
+    estado.textContent = "No se pudo contactar la API: " + err.message + " (¿está corriendo `python manage.py runserver`?)";
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+function renderResultadoMedico(el, datos) {
+  let html = "";
+  if (datos.alerta_critica) {
+    html += `<div class="banner-alerta">⚠ ALERTA CRÍTICA — requiere remisión médica inmediata.</div>`;
+  }
+  if (datos.reporte) {
+    html += `<div class="resultado-box"><strong>Resumen clínico:</strong><br>${(datos.reporte.resumen_clinico || "").replace(/\n/g, "<br>")}</div>`;
+  }
+  if (datos.resultados && datos.resultados.length) {
+    html += `<table><thead><tr><th>Indicador</th><th>Clasificación</th><th>Nivel</th><th>z</th></tr></thead><tbody>`;
+    for (const r of datos.resultados) {
+      html += `<tr><td>${r.indicador}</td><td>${r.clasificacion}</td><td>${badgeNivel(r.nivel_alerta)}</td><td>${r.valor_z ?? "—"}</td></tr>`;
+    }
+    html += `</tbody></table>`;
+  }
+  if (datos.reporte_pdf_url) {
+    html += `<div class="enlaces-pdf">
+      <a href="${datos.reporte_pdf_url}" target="_blank">Ver reporte técnico (PDF)</a>
+      <a class="familiar" href="${datos.reporte_familiar_pdf_url}" target="_blank">Ver reporte familiar (PDF)</a>
+    </div>`;
+  }
+  html += `<details><summary>Ver JSON crudo de la respuesta</summary><pre class="json-crudo">${JSON.stringify(datos, null, 2)}</pre></details>`;
+  el.innerHTML = html;
+}
+
+// ---- catálogo por comunidad ----
+document.getElementById("btn-catalogo").addEventListener("click", async () => {
+  const edad = document.getElementById("catalogo-edad").value || 24;
+  const etnia = document.getElementById("catalogo-etnia").value;
+  const el = document.getElementById("resultado-catalogo");
+  el.innerHTML = `<p class="estado">Cargando...</p>`;
+
+  const params = new URLSearchParams({ edad_meses: edad });
+  if (etnia) params.set("etnia", etnia);
+
+  try {
+    const resp = await fetch(`${API}/nutricion/catalogo/?${params}`);
+    const datos = await resp.json();
+    if (!resp.ok) { el.innerHTML = `<p class="estado error">Error: ${JSON.stringify(datos)}</p>`; return; }
+    if (!datos.aplica) { el.innerHTML = `<p class="estado">${datos.motivo_no_aplica}</p>`; return; }
+
+    let html = "";
+    for (const [grupo, items] of Object.entries(datos.catalogo)) {
+      html += `<h2 class="grupo">${NOMBRES_GRUPO[grupo] || grupo} (${items.length})</h2>`;
+      if (!items.length) { html += `<p class="estado">Sin alimentos disponibles para esta edad.</p>`; continue; }
+      html += `<ul class="alimentos-grupo">`;
+      for (const a of items) {
+        const badge = a.region_especifica
+          ? `<span class="badge" style="background:#4a3aa7">${a.region_especifica}</span>`
+          : `<span class="badge badge-general">general</span>`;
+        const kcal = a.calorias_por_porcion != null ? ` · ${Math.round(a.calorias_por_porcion)} kcal/porción` : "";
+        html += `<li>${badge} ${a.nombre}${kcal}</li>`;
+      }
+      html += `</ul>`;
+    }
+    el.innerHTML = html;
+  } catch (err) {
+    el.innerHTML = `<p class="estado error">No se pudo contactar la API: ${err.message}</p>`;
+  }
+});
+</script>
+
+</body>
+</html>

@@ -32,3 +32,6 @@ apps/who_standards/data/raw/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# PDFs de apps/assessments/management/commands/generar_reportes_prueba.py
+/reportes_prueba/

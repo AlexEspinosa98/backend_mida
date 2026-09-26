@@ -34,6 +34,22 @@
     <p>{{ explicacion_estandar_oms }}</p>
   </section>
 
+  <section class="instrumentos">
+    <p>
+      Estas medidas se toman con instrumentos especiales para que el resultado sea
+      confiable: una balanza (báscula) seca o calibrada para el peso,
+      {% if evaluacion.tipo_medicion_talla == "acostado" %}un infantómetro{% else %}un tallímetro{% endif %}
+      para la talla{% if evaluacion.perimetro_braquial_cm %}, y una cinta especial (cinta MUAC) para medir el brazo{% endif %}.
+    </p>
+  </section>
+
+  {% if explicacion_patron_local %}
+  <section class="patron-local">
+    <h2>¿Por qué aparecen dos comparaciones?</h2>
+    <p>{{ explicacion_patron_local }}</p>
+  </section>
+  {% endif %}
+
   <section class="resumen-familiar">
     <h2>¿Qué encontramos?</h2>
     <p>{{ resumen_familiar|linebreaksbr }}</p>
@@ -47,6 +63,13 @@
       <span class="nombre-medida">{{ item.nombre }}</span>
       <span class="texto-semaforo">{{ item.semaforo.texto }}</span>
     </div>
+    {% if item.semaforo_comunitario %}
+    <div class="fila-semaforo fila-comunitaria semaforo-{{ item.semaforo_comunitario.color }}">
+      <span class="punto"></span>
+      <span class="nombre-medida">{{ item.nombre }} — comunidad {{ item.etnia_comunitaria|capfirst }}</span>
+      <span class="texto-semaforo">{{ item.semaforo_comunitario.texto }}</span>
+    </div>
+    {% endif %}
     {% endfor %}
   </section>
 
@@ -65,20 +88,36 @@
       {% if tips_nutricionales %}<p class="tips-nutricionales">{{ tips_nutricionales|linebreaksbr }}</p>{% endif %}
       <table class="tabla-plan-nutricional">
         <thead>
-          <tr><th>Día</th><th>Desayuno</th><th>Almuerzo</th><th>Merienda</th><th>Cena</th></tr>
+          <tr>
+            <th>Día</th><th>Desayuno</th><th>Almuerzo</th><th>Merienda</th><th>Cena</th>
+            <th>Total del día (aprox.)</th>
+          </tr>
         </thead>
         <tbody>
           {% for dia in plan_nutricional.dias %}
           <tr>
             <td class="dia">{{ dia.dia }}</td>
-            <td>{% for a in dia.comidas.Desayuno %}{{ a.nombre }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
-            <td>{% for a in dia.comidas.Almuerzo %}{{ a.nombre }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
-            <td>{% for a in dia.comidas.Merienda %}{{ a.nombre }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
-            <td>{% for a in dia.comidas.Cena %}{{ a.nombre }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+            <td>{% for a in dia.comidas.Desayuno %}{{ a.nombre }}{% if a.porcion_g %} ({{ a.porcion_g }}g){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+            <td>{% for a in dia.comidas.Almuerzo %}{{ a.nombre }}{% if a.porcion_g %} ({{ a.porcion_g }}g){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+            <td>{% for a in dia.comidas.Merienda %}{{ a.nombre }}{% if a.porcion_g %} ({{ a.porcion_g }}g){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+            <td>{% for a in dia.comidas.Cena %}{{ a.nombre }}{% if a.porcion_g %} ({{ a.porcion_g }}g){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+            <td class="total-dia">
+              {% if dia.totales_nutricionales.calorias_kcal %}{{ dia.totales_nutricionales.calorias_kcal|floatformat:0 }} kcal{% if not dia.totales_nutricionales.datos_completos %} <span class="incompleto">(incompleto)</span>{% endif %}{% else %}—{% endif %}
+            </td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
+      {% if plan_nutricional.promedio_diario %}
+      <p class="resumen-nutricional">
+        Este plan aporta, en promedio, alrededor de
+        <strong>{{ plan_nutricional.promedio_diario.calorias_kcal|floatformat:0 }} kcal al día</strong>
+        (cálculo aproximado{% if not plan_nutricional.promedio_diario.datos_completos %}, incompleto porque
+        algunos alimentos aún no tienen esta información cargada -- la cifra real es mayor{% endif %}).
+        Esto es solo una referencia, no un cálculo médico exacto -- coménteselo al profesional
+        de nutrición si tiene dudas sobre si es suficiente para su hijo/a.
+      </p>
+      {% endif %}
       {% if notas_plan_nutricional %}
       <ul class="notas-plan-nutricional">
         {% for n in notas_plan_nutricional %}
@@ -93,9 +132,16 @@
 
   <footer class="pie">
     <p class="aviso">
-      Este documento es una ayuda para entender el resultado del control de crecimiento.
-      No reemplaza la consulta con el médico o profesional de salud que atiende a su hijo/a
-      -- ante cualquier duda, consúltele directamente.
+      MIDA es un prototipo pensado para ayudar y estar al alcance de cualquier persona --
+      no reemplaza a un médico, enfermera u otro profesional de la salud. Este documento
+      es solo una guía para entender el resultado del control de crecimiento; ante
+      cualquier duda o resultado que le preocupe, consulte siempre con el personal de
+      salud que atiende a su hijo/a.
+    </p>
+    <p class="aviso-datos">
+      Los datos de su hijo o hija que aparecen en este documento son confidenciales y
+      están protegidos por la ley -- solo deben ser vistos por usted y por el personal de
+      salud autorizado.
     </p>
     <p class="marca-agua">Generado por MIDA el {{ evaluacion.reporte.generado_en|date:"d/m/Y H:i" }}</p>
   </footer>

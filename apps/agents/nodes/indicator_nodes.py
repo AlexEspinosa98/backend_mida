@@ -29,6 +29,21 @@ _CLASIFICACIONES_CRITICAS = {
 }
 
 
+def _normalizar_comunitario(comunitario: dict) -> dict:
+    """El dict `comunitario` se clasifica con who_standards.classify, que usa
+    el mismo vocabulario crudo que el cálculo OMS ('normal'|'alerta'|'severo'|
+    'informativo'). Hay que traducirlo con el mismo _MAPA_NIVEL_ALERTA para
+    que sus badges (report_pdf.html, badge-{{ nivel_alerta }}) y el color del
+    punto en la gráfica comunitaria (reports/charts.py) coincidan con el
+    vocabulario real usado en el CSS y en _SEMAFORO -- sin este mapeo,
+    'alerta'/'informativo' no calzan con ninguna clase definida y el hallazgo
+    comunitario se muestra sin color de alerta."""
+    comunitario["nivel_alerta"] = _MAPA_NIVEL_ALERTA.get(
+        comunitario["nivel_alerta"], comunitario["nivel_alerta"]
+    )
+    return comunitario
+
+
 def _a_resultado(indicador: str, calculo: dict) -> IndicadorResultado:
     if not calculo.get("aplica", True):
         return {
@@ -84,7 +99,7 @@ def nodo_talla_edad(state: MidaState) -> dict:
         )
         if comunitario is not None:
             comunitario.update(classify.clasificar_talla_para_edad(comunitario["valor_z"]))
-            calculo["comunitario"] = comunitario
+            calculo["comunitario"] = _normalizar_comunitario(comunitario)
     return {"resultado_talla_edad": _a_resultado("TE", calculo)}
 
 
@@ -107,7 +122,7 @@ def nodo_peso_talla(state: MidaState) -> dict:
         )
         if comunitario is not None:
             comunitario.update(classify.clasificar_peso_para_talla(comunitario["valor_z"]))
-            calculo["comunitario"] = comunitario
+            calculo["comunitario"] = _normalizar_comunitario(comunitario)
 
     if calculo.get("aplica", True) and state["mediciones"]["edema_bilateral"]:
         calculo = classify.aplicar_override_edema(calculo)
@@ -136,7 +151,7 @@ def nodo_peso_edad(state: MidaState) -> dict:
         )
         if comunitario is not None:
             comunitario.update(classify.clasificar_peso_para_edad(comunitario["valor_z"]))
-            calculo["comunitario"] = comunitario
+            calculo["comunitario"] = _normalizar_comunitario(comunitario)
     return {"resultado_peso_edad": _a_resultado("PE", calculo)}
 
 
@@ -157,7 +172,7 @@ def nodo_imc_edad(state: MidaState) -> dict:
         )
         if comunitario is not None:
             comunitario.update(classify.clasificar_imc_para_edad(comunitario["valor_z"]))
-            calculo["comunitario"] = comunitario
+            calculo["comunitario"] = _normalizar_comunitario(comunitario)
     return {"resultado_imc_edad": _a_resultado("IMCE", calculo)}
 
 

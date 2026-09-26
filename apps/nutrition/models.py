@@ -1,5 +1,14 @@
 from django.db import models
 
+from apps.patients.models import Paciente
+
+# Comunidades a las que un alimento puede restringirse (ver `region_especifica`
+# abajo). Se reutiliza Paciente.Etnia como única fuente de verdad -- se
+# excluye NINGUNA porque no es una comunidad, es "sin etnia registrada".
+REGIONES_ESPECIFICAS_CHOICES = [
+    choice for choice in Paciente.Etnia.choices if choice[0] != Paciente.Etnia.NINGUNA
+]
+
 
 class Alimento(models.Model):
     """Catálogo de alimentos que el administrador puede agregar/quitar
@@ -30,6 +39,46 @@ class Alimento(models.Model):
         default="",
         help_text="Ej. 'picar en trozos pequeños para evitar atragantamiento'.",
     )
+    region_especifica = models.CharField(
+        max_length=10,
+        choices=REGIONES_ESPECIFICAS_CHOICES,
+        blank=True,
+        default="",
+        help_text=(
+            "Dejar vacío = disponible para cualquier paciente (catálogo general). Si se "
+            "marca una comunidad (ej. Kogui), este alimento SOLO se ofrece además en el "
+            "plan de pacientes de esa etnia -- no reemplaza el catálogo general, que se "
+            "sigue ofreciendo a todos los pacientes tengan o no una etnia registrada."
+        ),
+    )
+    excluido_para_region = models.CharField(
+        max_length=10,
+        choices=REGIONES_ESPECIFICAS_CHOICES,
+        blank=True,
+        default="",
+        help_text=(
+            "Si se marca una comunidad, este alimento (aunque esté en el catálogo "
+            "general) NO se ofrece a pacientes de esa etnia -- para alimentos que, pese "
+            "a estar disponibles en general, no son culturalmente apropiados o accesibles "
+            "para esa comunidad en particular. Use junto con `region_especifica` en el "
+            "alimento de reemplazo correspondiente."
+        ),
+    )
+    porcion_referencia_g = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        help_text="Tamaño de una porción de referencia para un niño pequeño, en gramos (o mL para líquidos). Se usa para calcular el aporte calórico del plan.",
+    )
+    calorias_kcal_100g = models.DecimalField(
+        max_digits=5,
+        decimal_places=1,
+        null=True,
+        blank=True,
+        help_text="Energía por cada 100g/100mL de este alimento, en kcal -- valor de referencia aproximado (tabla de composición de alimentos estándar), no un análisis de laboratorio de este alimento en particular.",
+    )
+    proteina_g_100g = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
+    carbohidratos_g_100g = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
+    grasa_g_100g = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
     creado_en = models.DateTimeField(auto_now_add=True)
     actualizado_en = models.DateTimeField(auto_now=True)
 
@@ -41,3 +90,9 @@ class Alimento(models.Model):
 
     def __str__(self):
         return f"{self.nombre} ({self.get_grupo_display()})"
+
+    @property
+    def calorias_por_porcion(self) -> float | None:
+        if self.calorias_kcal_100g is None or not self.porcion_referencia_g:
+            return None
+        return round(float(self.calorias_kcal_100g) * self.porcion_referencia_g / 100, 1)

@@ -64,6 +64,24 @@ EXPLICACION_METODOLOGIA = (
     "completo."
 )
 
+# Versión en lenguaje sencillo de EXPLICACION_METODOLOGIA, para el reporte
+# familiar -- mismo contenido, sin tecnicismos (z-score, DE, etc.), pensada
+# para un cuidador sin formación clínica.
+EXPLICACION_METODOLOGIA_FAMILIAR = (
+    "Además de comparar el crecimiento de su hijo o hija con el patrón internacional de "
+    "la Organización Mundial de la Salud (OMS), este reporte también lo compara con un "
+    "patrón de crecimiento propio de su comunidad (Kogui o Arhuaco, Sierra Nevada de "
+    "Santa Marta), basado en un estudio con miles de niños y niñas de estas etnias. "
+    "Mostramos las dos comparaciones porque ese estudio encontró que los niños y niñas "
+    "de estas comunidades suelen tener, en promedio, una talla y un peso naturalmente "
+    "distintos a los de la OMS, sin que eso signifique por sí solo un problema de "
+    "nutrición -- por eso conviene mirar ambos resultados juntos, y no solo uno, antes "
+    "de preocuparse. Si las dos comparaciones no coinciden, no ignore el resultado: "
+    "coménteselo al profesional de salud en el próximo control. Esta comparación "
+    "comunitaria es una aproximación estadística, no una tabla tan detallada como la de "
+    "la OMS."
+)
+
 # Desfase promedio (talla observada - talla media OMS, en cm) por
 # etnia×sexo, "en meseta" (valor típico a partir de ~24 meses según el
 # estudio). DE de la diferencia: solo disponible como cifra GLOBAL

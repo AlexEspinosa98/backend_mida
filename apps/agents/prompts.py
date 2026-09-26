@@ -1,4 +1,24 @@
-PROMPT_SISTEMA_SINTESIS = """Eres un asistente clínico que redacta, en español, la sección de \
+def obtener_prompt_sistema(clave: str, default: str) -> str:
+    """Devuelve el system prompt editable desde /admin/ (modelo
+    apps.agents.models.PromptSistema) para esta `clave`, o `default` si no
+    hay un registro activo -- así el asistente nunca se queda sin system
+    prompt, incluso antes de sembrar la tabla o si un admin lo desactiva.
+    Import diferido de Django para no forzar que este módulo dependa de
+    que Django esté configurado en todo contexto en que se use."""
+    from django.db import DatabaseError, ProgrammingError
+
+    from .models import PromptSistema
+
+    try:
+        prompt = PromptSistema.objects.filter(clave=clave, activo=True).first()
+    except (DatabaseError, ProgrammingError):
+        # Tabla aún no migrada (ej. en un entorno recién creado) -- usar el
+        # texto por defecto en vez de reventar.
+        return default
+    return prompt.contenido if prompt else default
+
+
+_DEFAULT_PROMPT_SISTEMA_SINTESIS = """Eres un asistente clínico que redacta, en español, la sección de \
 "Impresión clínica y sugerencias" de un reporte de tamizaje nutricional infantil (0-5 años) \
 basado en los indicadores antropométricos de la OMS, dirigido a un médico.
 
@@ -41,7 +61,11 @@ profesional de la salud, sin emojis ni encabezados.
 el juicio profesional médico."""
 
 
-PROMPT_SISTEMA_SINTESIS_FAMILIAR = """Eres un asistente que redacta, en español sencillo y \
+def prompt_sistema_sintesis() -> str:
+    return obtener_prompt_sistema("sintesis_clinica", _DEFAULT_PROMPT_SISTEMA_SINTESIS)
+
+
+_DEFAULT_PROMPT_SISTEMA_SINTESIS_FAMILIAR = """Eres un asistente que redacta, en español sencillo y \
 cálido, la explicación de un tamizaje de crecimiento infantil (0-5 años) para la familia o \
 cuidador de un niño o niña, SIN usar jerga médica ni mostrar números técnicos (z-scores).
 
@@ -70,6 +94,10 @@ referencia internacional de niños sanos), no con un solo país o comunidad.
 - Tono cálido, respetuoso, en 2-3 párrafos cortos. Nunca uses emojis.
 - Termina siempre invitando a resolver dudas con el médico o profesional de salud que atiende \
 al niño o niña -- este resumen no reemplaza esa consulta."""
+
+
+def prompt_sistema_sintesis_familiar() -> str:
+    return obtener_prompt_sistema("sintesis_familiar", _DEFAULT_PROMPT_SISTEMA_SINTESIS_FAMILIAR)
 
 
 _NOMBRES_INDICADOR = {
@@ -142,19 +170,27 @@ def construir_prompt_sintesis_familiar(hallazgos: dict, paciente: dict, medicion
     return "\n".join(lineas)
 
 
-PROMPT_SISTEMA_TIPS_NUTRICION = """Eres un asistente que redacta, en español cálido y claro, \
+_DEFAULT_PROMPT_SISTEMA_TIPS_NUTRICION = """Eres un asistente que redacta, en español cálido y claro, \
 una breve introducción y consejos generales de alimentación para acompañar un plan de \
 alimentación semanal YA ELABORADO -- tú no eliges ni sugieres alimentos específicos, eso ya \
 fue decidido por reglas fijas y se muestra aparte en una tabla.
 
 Reglas estrictas:
-- NO menciones alimentos específicos por nombre (ni frutas, ni verduras, ni carnes, ni nada) \
--- el menú detallado ya está en la tabla; tu texto es solo introducción y consejos generales \
-de alimentación, nunca una descripción del menú.
+- NO menciones alimentos específicos por nombre (ni frutas, ni verduras, ni carnes, ni \
+lácteos) -- el menú detallado ya está en la tabla; tu texto es solo introducción y consejos \
+generales de alimentación, nunca una descripción del menú. La única excepción es la frase \
+opcional de cierre descrita más abajo.
 - Los consejos deben ser generales y apropiados para la edad indicada: por ejemplo, introducir \
 alimentos nuevos de a uno para detectar posibles reacciones, ofrecer agua entre comidas, \
 respetar las señales de hambre y saciedad del niño o niña (no forzar a comer), texturas \
 apropiadas para la edad, evitar azúcar y sal añadidas antes de los 2 años.
+- Excepción puntual y opcional: si el usuario te da una lista "Alimentos de \
+cereales/tubérculos para destacar", ya fue elegida por reglas fijas (tú NO decides cuáles ni \
+cuántos) -- puedes cerrar con UNA sola frase breve animando a aprovechar esos alimentos \
+exactos por ser accesibles/económicos en la comunidad. Menciona TODOS los de esa lista (nunca \
+menos, nunca más, nunca otro alimento fuera de ella) y no la uses para describir ningún otro \
+grupo (frutas, verduras, proteínas, lácteos siguen sin poder nombrarse). Si no te dan esa \
+lista, omite la frase por completo.
 - NO prescribas cantidades, gramos, mililitros ni frecuencias distintas a las 4 comidas ya \
 establecidas (desayuno, almuerzo, merienda, cena).
 - NO des recomendaciones de tratamiento médico, suplementos, ni fórmulas terapéuticas.
@@ -163,11 +199,20 @@ establecidas (desayuno, almuerzo, merienda, cena).
 reemplaza la valoración de un profesional de nutrición o del médico tratante."""
 
 
-def construir_prompt_tips_nutricion(edad_meses: float, conteos_por_grupo: dict[str, int]) -> str:
+def prompt_sistema_tips_nutricion() -> str:
+    return obtener_prompt_sistema("tips_nutricion", _DEFAULT_PROMPT_SISTEMA_TIPS_NUTRICION)
+
+
+def construir_prompt_tips_nutricion(
+    edad_meses: float,
+    conteos_por_grupo: dict[str, int],
+    alimentos_cereal_disponibles: list[str] | None = None,
+) -> str:
     lineas = [
         f"Edad del niño o niña: {edad_meses:.1f} meses.",
         "Cantidad de alimentos disponibles por grupo en el plan de esta semana (no sus "
-        "nombres, no los menciones):",
+        "nombres, no los menciones -- salvo la única excepción de cereales/tubérculos que se "
+        "explica abajo):",
     ]
     nombres_grupo = {
         "fruta": "frutas",
@@ -178,8 +223,13 @@ def construir_prompt_tips_nutricion(edad_meses: float, conteos_por_grupo: dict[s
     }
     for grupo, cantidad in conteos_por_grupo.items():
         lineas.append(f"- {nombres_grupo.get(grupo, grupo)}: {cantidad} opciones disponibles")
+    if alimentos_cereal_disponibles:
+        lineas.append(
+            "\nAlimentos de cereales/tubérculos para destacar (ya elegidos, no elijas otros -- "
+            "menciona TODOS estos y ningún otro en tu frase opcional de cierre): "
+            + ", ".join(alimentos_cereal_disponibles)
+        )
     lineas.append(
-        "\nRedacta la introducción y los consejos generales siguiendo las reglas del sistema. "
-        "Recuerda: no menciones ningún alimento por su nombre."
+        "\nRedacta la introducción y los consejos generales siguiendo las reglas del sistema."
     )
     return "\n".join(lineas)
