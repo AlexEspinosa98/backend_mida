@@ -218,7 +218,10 @@
 </main>
 
 <script>
-const API = "/api/v1";
+// Ruta absoluta calculada respecto a esta misma página (no fija en "/api/v1") -- detrás de un
+// nginx que monta la app en un prefijo (ej. /api/mida), "/api/v1" a secas queda apuntando a la
+// raíz del dominio en vez de al prefijo real, y todos los fetch de abajo revientan en 404.
+const API = window.location.pathname.replace(/simulador\/?$/, "") + "api/v1";
 const NOMBRES_GRUPO = { fruta: "Frutas", verdura: "Verduras", proteina: "Proteínas", cereal: "Cereales / tubérculos", lacteo: "Lácteos" };
 
 // ---- tabs ----

@@ -33,8 +33,11 @@ class Alimento(models.Model):
         default=True,
         help_text="Si está desmarcado, este alimento no se usa en los planes nutricionales generados.",
     )
-    notas = models.CharField(
-        max_length=200,
+    # TextField, no CharField: notas reales llegan a >400 caracteres (ej. advertencias de
+    # seguridad clínica sobre preparación/edad mínima para alimentos comunitarios como la
+    # chicha fermentada, migración 0007) -- un CharField(200) truncaba contenido de seguridad,
+    # nunca solo el ejemplo corto del help_text de abajo.
+    notas = models.TextField(
         blank=True,
         default="",
         help_text="Ej. 'picar en trozos pequeños para evitar atragantamiento'.",

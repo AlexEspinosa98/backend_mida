@@ -113,13 +113,20 @@ class EvaluacionSerializer(serializers.ModelSerializer):
         ]
 
     def get_reporte_pdf_url(self, obj):
-        request = self.context.get("request")
-        if not request:
-            return None
-        return request.build_absolute_uri(f"/api/v1/evaluaciones/{obj.id}/reporte/")
+        return self._url_absoluta(f"/api/v1/evaluaciones/{obj.id}/reporte/")
 
     def get_reporte_familiar_pdf_url(self, obj):
+        return self._url_absoluta(f"/api/v1/evaluaciones/{obj.id}/reporte-familiar/")
+
+    def _url_absoluta(self, ruta):
+        # build_absolute_uri(ruta) con una ruta que empieza en "/" la trata como ya relativa a
+        # la raíz del sitio -- NUNCA le antepone SCRIPT_NAME, ni con FORCE_SCRIPT_NAME fijado.
+        # Detrás de un nginx que monta esta app en un prefijo (ver DJANGO_FORCE_SCRIPT_NAME,
+        # ej. /api/mida), había que anteponerlo a mano o el link quedaba roto en producción
+        # (404: el prefijo nunca llegaba a la URL devuelta por la API).
+        from django.urls import get_script_prefix
+
         request = self.context.get("request")
         if not request:
             return None
-        return request.build_absolute_uri(f"/api/v1/evaluaciones/{obj.id}/reporte-familiar/")
+        return request.build_absolute_uri(get_script_prefix().rstrip("/") + ruta)

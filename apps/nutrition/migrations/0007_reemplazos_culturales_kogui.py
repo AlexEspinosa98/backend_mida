@@ -214,7 +214,7 @@ def deshacer(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("nutrition", "0006_alimento_excluido_para_region"),
+        ("nutrition", "0006_1_alter_alimento_notas"),
     ]
 
     operations = [
