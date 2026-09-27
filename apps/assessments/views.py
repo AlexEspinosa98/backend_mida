@@ -1,3 +1,4 @@
+from django.db import IntegrityError
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from rest_framework import status
@@ -26,7 +27,16 @@ class EvaluacionCreateView(APIView):
         entrada = EvaluacionInputSerializer(data=request.data)
         entrada.is_valid(raise_exception=True)
 
-        evaluacion = ejecutar_evaluacion(entrada.validated_data)
+        try:
+            evaluacion = ejecutar_evaluacion(entrada.validated_data)
+        except IntegrityError:
+            # El serializer ya valida codigo_caso duplicado, pero esto cubre la
+            # carrera entre dos POST casi simultáneos con el mismo código -- sin
+            # esto, el segundo terminaba en un 500 sin capturar.
+            return Response(
+                {"codigo_caso": ["Ya existe un caso con ese código (creado justo ahora)."]},
+                status=status.HTTP_409_CONFLICT,
+            )
 
         salida = EvaluacionSerializer(evaluacion, context={"request": request})
         codigo = status.HTTP_201_CREATED if evaluacion.estado == Evaluacion.Estado.COMPLETADA else status.HTTP_422_UNPROCESSABLE_ENTITY

@@ -144,6 +144,22 @@ class EvaluacionInputSerializer(serializers.Serializer):
     objetivo_reporte = serializers.CharField(max_length=200, required=False, allow_blank=True)
     notas_administrativas = serializers.CharField(required=False, allow_blank=True)
 
+    def validate_codigo_caso(self, value):
+        # Sin esto, un código repetido (ej. un reintento del frontend con el mismo
+        # payload tras un timeout, sin saber que la evaluación original sí se creó)
+        # reventaba como un IntegrityError sin capturar -> 500 -- acá se convierte
+        # en un 400 claro, e incluye el id de la evaluación existente para que el
+        # frontend pueda recuperarla en vez de perder el resultado.
+        existente = Evaluacion.objects.filter(codigo_caso=value).first() if value else None
+        if existente:
+            raise serializers.ValidationError(
+                f'Ya existe un caso con el código "{value}" (evaluación {existente.id}, '
+                f"estado: {existente.estado}) -- si esto es un reintento, consulta "
+                f"GET /api/v1/evaluaciones/{existente.id}/ en vez de repetir el POST, "
+                "o genera un código de caso nuevo."
+            )
+        return value
+
     edad_meses = serializers.DecimalField(
         max_digits=5, decimal_places=2, min_value=Decimal("0"), max_value=Decimal("60")
     )
