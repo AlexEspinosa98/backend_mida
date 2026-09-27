@@ -111,7 +111,7 @@ def _requiere_escalar_alerta(signos: dict | None, resultados: list[dict]) -> boo
 
 
 @transaction.atomic
-def ejecutar_evaluacion(datos: dict) -> Evaluacion:
+def ejecutar_evaluacion(datos: dict, creado_por=None) -> Evaluacion:
     fecha_evaluacion = datos.get("fecha_evaluacion") or date.today()
     sexo = datos["sexo"]
     edad_meses = datos["edad_meses"]
@@ -122,6 +122,7 @@ def ejecutar_evaluacion(datos: dict) -> Evaluacion:
 
     evaluacion = Evaluacion.objects.create(
         paciente=paciente,
+        creado_por=creado_por,
         codigo_caso=datos.get("codigo_caso") or _generar_codigo_caso(),
         notas_administrativas=datos.get("notas_administrativas") or "",
         fecha_evaluacion=fecha_evaluacion,

@@ -8,7 +8,8 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.accounts.permissions import EsMedico
+from apps.accounts.models import PerfilUsuario
+from apps.accounts.permissions import EsMedico, rol_de
 from apps.patients.models import Paciente
 
 from .models import Evaluacion
@@ -20,6 +21,17 @@ class EvaluacionPagination(PageNumberPagination):
     page_size = 20
     page_size_query_param = "page_size"
     max_page_size = 100
+
+
+def _evaluaciones_visibles(user, qs=None):
+    """Un médico solo ve/descarga los casos que él mismo creó -- el superadmin
+    los ve todos, sin restricción. Un caso huérfano (creado_por=None, de antes
+    de que este campo existiera) solo lo ve el superadmin."""
+
+    qs = Evaluacion.objects.all() if qs is None else qs
+    if rol_de(user) == PerfilUsuario.Rol.SUPERADMIN:
+        return qs
+    return qs.filter(creado_por=user)
 
 
 class EvaluacionListCreateView(ListCreateAPIView):
@@ -37,10 +49,11 @@ class EvaluacionListCreateView(ListCreateAPIView):
     pagination_class = EvaluacionPagination
 
     def get_queryset(self):
-        qs = (
-            Evaluacion.objects.select_related("paciente", "reporte")
+        qs = _evaluaciones_visibles(
+            self.request.user,
+            Evaluacion.objects.select_related("paciente", "reporte", "creado_por")
             .prefetch_related("resultados")
-            .order_by("-creado_en")
+            .order_by("-creado_en"),
         )
         params = self.request.query_params
 
@@ -66,7 +79,7 @@ class EvaluacionListCreateView(ListCreateAPIView):
         entrada.is_valid(raise_exception=True)
 
         try:
-            evaluacion = ejecutar_evaluacion(entrada.validated_data)
+            evaluacion = ejecutar_evaluacion(entrada.validated_data, creado_por=request.user)
         except IntegrityError:
             # El serializer ya valida codigo_caso duplicado, pero esto cubre la
             # carrera entre dos POST casi simultáneos con el mismo código -- sin
@@ -82,12 +95,21 @@ class EvaluacionListCreateView(ListCreateAPIView):
 
 
 class EvaluacionDetailView(RetrieveAPIView):
-    """GET /api/v1/evaluaciones/{id}/"""
+    """GET /api/v1/evaluaciones/{id}/ -- un médico solo ve el detalle de sus
+    propios casos (404, no 403, para no confirmarle que el id existe); el
+    superadmin ve cualquiera."""
 
-    queryset = Evaluacion.objects.select_related("paciente", "reporte").prefetch_related("resultados")
     serializer_class = EvaluacionSerializer
     lookup_field = "id"
     permission_classes = [EsMedico]
+
+    def get_queryset(self):
+        return _evaluaciones_visibles(
+            self.request.user,
+            Evaluacion.objects.select_related("paciente", "reporte", "creado_por").prefetch_related(
+                "resultados"
+            ),
+        )
 
 
 class _EvaluacionReporteBaseView(APIView):
@@ -96,13 +118,14 @@ class _EvaluacionReporteBaseView(APIView):
     permission_classes = [EsMedico]
     nombre_archivo = "reporte_mida_{id}.pdf"
 
-    def _obtener_evaluacion(self, id):
+    def _obtener_evaluacion(self, request, id):
         try:
-            return (
-                Evaluacion.objects.select_related("paciente", "reporte")
-                .prefetch_related("resultados")
-                .get(id=id)
-            )
+            return _evaluaciones_visibles(
+                request.user,
+                Evaluacion.objects.select_related("paciente", "reporte", "creado_por").prefetch_related(
+                    "resultados"
+                ),
+            ).get(id=id)
         except Evaluacion.DoesNotExist as exc:
             raise Http404 from exc
 
@@ -110,7 +133,7 @@ class _EvaluacionReporteBaseView(APIView):
         raise NotImplementedError
 
     def get(self, request, id):
-        evaluacion = self._obtener_evaluacion(id)
+        evaluacion = self._obtener_evaluacion(request, id)
 
         if evaluacion.estado != Evaluacion.Estado.COMPLETADA:
             return Response(
@@ -151,7 +174,10 @@ class EvaluacionReporteFamiliarView(_EvaluacionReporteBaseView):
 
 
 class PacienteEvaluacionesListView(ListAPIView):
-    """GET /api/v1/pacientes/{paciente_id}/evaluaciones/ — historial longitudinal."""
+    """GET /api/v1/pacientes/{paciente_id}/evaluaciones/ — historial longitudinal.
+    Un médico solo ve, dentro del historial de ese paciente, las evaluaciones que
+    él mismo registró -- si dos médicos atendieron al mismo niño, cada uno ve solo
+    su parte; el superadmin ve el historial completo."""
 
     serializer_class = EvaluacionSerializer
     permission_classes = [EsMedico]
@@ -159,8 +185,9 @@ class PacienteEvaluacionesListView(ListAPIView):
     def get_queryset(self):
         paciente_id = self.kwargs["paciente_id"]
         get_object_or_404(Paciente, id=paciente_id)
-        return (
+        return _evaluaciones_visibles(
+            self.request.user,
             Evaluacion.objects.filter(paciente_id=paciente_id)
-            .select_related("paciente", "reporte")
-            .prefetch_related("resultados")
+            .select_related("paciente", "reporte", "creado_por")
+            .prefetch_related("resultados"),
         )

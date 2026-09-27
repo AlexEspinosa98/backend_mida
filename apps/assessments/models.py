@@ -1,5 +1,6 @@
 import uuid
 
+from django.conf import settings
 from django.db import models
 
 from .choices import TriEstado
@@ -19,6 +20,17 @@ class Evaluacion(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     paciente = models.ForeignKey(
         "patients.Paciente", related_name="evaluaciones", on_delete=models.PROTECT
+    )
+    # Quién registró el caso -- un médico solo ve/descarga sus propios casos (el
+    # superadmin los ve todos, sin restricción). null=True porque los casos creados
+    # antes de este campo no tienen un autor conocido -- se tratan como huérfanos,
+    # visibles solo para superadmin, no como si fueran de todos los médicos.
+    creado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="evaluaciones_creadas",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
     )
 
     # Código de caso propio (HU-1) -- generado por el servicio si no se manda uno

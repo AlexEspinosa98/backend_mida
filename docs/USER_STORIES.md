@@ -374,6 +374,13 @@ recoja una versión reducida del caso.
 - Requiere sesión de médico (rol `medico` o `superadmin`, vía `EsMedico`). Genera
   `reporte_pdf_url` y `reporte_familiar_pdf_url` en la misma respuesta, igual que hoy — el
   médico decide con cuál de los dos se queda o cuál entrega según a quién se lo esté explicando.
+- **Cada caso solo lo ve el médico que lo creó** (`Evaluacion.creado_por`, fijado automáticamente
+  al momento del `POST`, no lo manda el cliente). Esto aplica al dashboard
+  (`GET /api/v1/evaluaciones/`), al detalle, al historial por paciente y a la descarga de los
+  PDF -- un médico que intenta ver/descargar el caso de otro médico recibe `404` (no `403`, para
+  no confirmarle siquiera que el id existe). El superadmin no tiene esta restricción: ve y
+  descarga cualquier caso, de cualquier médico. Un caso creado antes de que existiera este campo
+  (`creado_por=NULL`) solo lo ve el superadmin.
 
 ## HU-11 — Superadmin: crear usuarios médicos
 

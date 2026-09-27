@@ -71,13 +71,14 @@ class EvaluacionAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "paciente",
+        "creado_por",
         "fecha_evaluacion",
         "edad_meses_decimal",
         "estado",
         "alerta_critica",
         "creado_en",
     )
-    list_filter = ("estado", "alerta_critica")
+    list_filter = ("estado", "alerta_critica", "creado_por")
     search_fields = (
         "paciente__nombres",
         "paciente__apellidos",

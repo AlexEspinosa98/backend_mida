@@ -290,6 +290,7 @@ class ContextoFamiliarTerritorialSerializer(serializers.ModelSerializer):
 
 class EvaluacionSerializer(serializers.ModelSerializer):
     paciente = PacienteSerializer(read_only=True)
+    creado_por_username = serializers.CharField(source="creado_por.username", read_only=True, default=None)
     resultados = ResultadoIndicadorSerializer(many=True, read_only=True)
     reporte = ReporteGeneradoSerializer(read_only=True)
     reporte_pdf_url = serializers.SerializerMethodField()
@@ -307,6 +308,7 @@ class EvaluacionSerializer(serializers.ModelSerializer):
             "codigo_caso",
             "notas_administrativas",
             "paciente",
+            "creado_por_username",
             "fecha_evaluacion",
             "edad_dias",
             "edad_meses_decimal",
@@ -371,6 +373,7 @@ class EvaluacionResumenSerializer(EvaluacionSerializer):
             "codigo_caso",
             "paciente_nombre",
             "paciente_etnia",
+            "creado_por_username",
             "fecha_evaluacion",
             "estado",
             "alerta_critica",
