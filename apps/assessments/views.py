@@ -5,6 +5,7 @@ from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.accounts.permissions import EsMedico
 from apps.patients.models import Paciente
 
 from .models import Evaluacion
@@ -18,6 +19,8 @@ class EvaluacionCreateView(APIView):
     Recibe las mediciones antropométricas de un niño (0-5 años), ejecuta
     el pipeline multiagente (LangGraph) que calcula los 6 indicadores OMS,
     persiste el resultado y devuelve el reporte estructurado en JSON."""
+
+    permission_classes = [EsMedico]
 
     def post(self, request):
         entrada = EvaluacionInputSerializer(data=request.data)
@@ -36,11 +39,13 @@ class EvaluacionDetailView(RetrieveAPIView):
     queryset = Evaluacion.objects.select_related("paciente", "reporte").prefetch_related("resultados")
     serializer_class = EvaluacionSerializer
     lookup_field = "id"
+    permission_classes = [EsMedico]
 
 
 class _EvaluacionReporteBaseView(APIView):
     """Base común para las vistas de descarga de PDF (técnico y familiar)."""
 
+    permission_classes = [EsMedico]
     nombre_archivo = "reporte_mida_{id}.pdf"
 
     def _obtener_evaluacion(self, id):
@@ -101,6 +106,7 @@ class PacienteEvaluacionesListView(ListAPIView):
     """GET /api/v1/pacientes/{paciente_id}/evaluaciones/ — historial longitudinal."""
 
     serializer_class = EvaluacionSerializer
+    permission_classes = [EsMedico]
 
     def get_queryset(self):
         paciente_id = self.kwargs["paciente_id"]

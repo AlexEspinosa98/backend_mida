@@ -1,9 +1,15 @@
 # Historias de usuario — MIDA (ampliación del formulario de tamizaje)
 
-**Estado: propuesta de diseño, nada de esto está implementado todavía.** Documenta cómo se vería
-la ampliación del formulario que ya existe (`Paciente` + `Evaluacion`, hoy solo nombres, sexo,
-etnia, peso, talla, perímetros braquial/cefálico, edema) para cubrir el formulario completo de
-identificación del caso, y la separación en dos sesiones (médico / comunidad).
+**Estado:** el modelo de datos ampliado (HU-1 a HU-8) sigue siendo una propuesta de diseño, sin
+implementar. El flujo de acceso (HU-9 a HU-12) **sí está implementado**: login por token, acceso
+restringido a médicos, y un flujo de superadmin para crear/editar/desactivar médicos y resetear
+contraseñas — ver `apps/accounts/`.
+
+Documenta cómo se vería la ampliación del formulario que ya existe (`Paciente` + `Evaluacion`,
+hoy solo nombres, sexo, etnia, peso, talla, perímetros braquial/cefálico, edema) para cubrir el
+formulario completo de identificación del caso, y el flujo de acceso: **ya no existe una sesión
+de "comunidad" con acceso libre** — todo el registro del caso y la generación de reportes
+(técnico y familiar) los hace un médico autenticado; un superadmin solo administra usuarios.
 
 ## Principio general: se guarda todo, cada reporte usa solo lo suyo
 
@@ -48,7 +54,7 @@ class TriEstado(models.TextChoices):
 
 ## HU-1 — Identificar el caso con un código y una fecha de reporte propios
 
-Como médico o encargado de comunidad quiero que cada tamizaje tenga un código de caso único y
+Como médico quiero que cada tamizaje tenga un código de caso único y
 una fecha de reporte (distinta de la fecha en que se tomó la medición), para poder referenciar un
 caso concreto en comunicaciones externas sin exponer el UUID interno.
 
@@ -124,7 +130,7 @@ reporte técnico incluya el cuadro clínico completo, no solo las cifras antropo
 
 ## HU-6 — Hábitos alimentarios reportados por la familia
 
-Como médico o encargado de comunidad quiero registrar qué come habitualmente el menor (no lo que
+Como médico quiero registrar qué come habitualmente el menor (no lo que
 debería comer — eso ya lo genera el plan nutricional de `apps.nutrition`), para que el resumen y
 el plan sugerido partan de la realidad del hogar, no de un punto de partida genérico.
 
@@ -159,54 +165,86 @@ probable de uno donde el entorno es el factor dominante — cambia la recomendac
   `antecedentes_familiares_baja_talla` (`TriEstado`), `hermanos_baja_talla` (`TriEstado`),
   `inseguridad_alimentaria_reportada` (`TriEstado`), `dificultad_acceso_salud` (`TriEstado`),
   `observaciones_familia` (texto), `observaciones_autoridad_tradicional` (texto).
-- `observaciones_autoridad_tradicional` es el único campo pensado explícitamente para que lo
-  llene alguien de la comunidad (no necesariamente el médico) — ver HU-10/HU-11.
+- `observaciones_autoridad_tradicional` recoge lo que la autoridad tradicional o el promotor
+  comunitario le haya comunicado al médico durante la visita — lo registra el médico en su misma
+  sesión (ya no hay una sesión de comunidad aparte, ver HU-9/HU-10), como cualquier otro campo del
+  formulario.
 
-## HU-9 — Dos roles de acceso: médico y comunidad
+## HU-9 — Login obligatorio: solo médicos acceden al sistema
 
-Como administrador del sistema quiero que existan dos tipos de sesión con permisos distintos,
-porque hoy la API no tiene ningún control de acceso (está abierta) y el formulario completo
-(signos clínicos, calidad de medición) no debería estar en manos de alguien sin formación
-clínica, mientras que el registro básico del caso y el reporte familiar sí.
+Como administrador del sistema quiero que ningún endpoint clínico sea accesible sin iniciar
+sesión, porque hoy la API no tiene ningún control de acceso (está abierta) y ya no existe un
+perfil de "comunidad" con acceso libre — todo el registro del caso (formulario completo) y la
+generación de reportes (técnico y familiar) pasan a ser una tarea exclusiva del médico.
 
 - Se agrega autenticación por token (`rest_framework.authtoken`, mismo mecanismo ya usado en
-  otros backends de este servidor) y un `PerfilUsuario` con `rol` (`medico` / `comunidad`),
-  mismo patrón que `jornadas.PerfilUsuario` en el backend de Aluna Kunsamu.
-- `IsMedico` / `IsComunidad` como `permission_classes` de DRF, aplicadas por endpoint (ver
-  HU-10/HU-11).
+  otros backends de este servidor) y un `PerfilUsuario` con `rol` (`medico` / `superadmin`).
+  Un usuario sin fila en `PerfilUsuario` (p. ej. el primer `createsuperuser` de despliegue) se
+  trata como `superadmin` automáticamente, para que el primer usuario del sistema nunca quede
+  bloqueado por falta de perfil.
+- `POST /api/v1/auth/login/` — único endpoint público (`username` + `password`), devuelve un
+  token y el `rol` del usuario. No hay registro público de cuentas: toda cuenta la crea un
+  superadmin (ver HU-11).
+- Todos los endpoints de evaluaciones (`/api/v1/evaluaciones/...`, `/api/v1/pacientes/.../
+  evaluaciones/`) y el de catálogo de nutrición (`/api/v1/nutricion/catalogo/`) exigen rol
+  `medico` o superior (`EsMedico`) vía `Authorization: Token <token>`. Sin token, o con un token
+  de un usuario inactivo, la API responde `401`; con token válido pero sin rol suficiente,
+  `403`.
 
 ## HU-10 — Sesión médico: captura el caso completo y genera ambos reportes
 
 Como médico quiero poder llenar el formulario completo (identificación, mediciones, calidad,
 signos clínicos, alimentación, actividad, contexto familiar) y generar tanto el reporte técnico
 como el familiar desde una sola sesión, porque soy quien tiene el criterio clínico para
-interpretar signos y calidad de medición.
+interpretar signos y calidad de medición — y porque ya no hay una sesión de comunidad aparte que
+recoja una versión reducida del caso.
 
 - `POST /api/v1/evaluaciones/` (ya existe) se amplía para aceptar los bloques nuevos anidados en
   el payload (`calidad_medicion`, `signos_clinicos`, `habitos_alimentarios`, `actividad_fisica`,
   `contexto_familiar`), todos opcionales — un médico apurado puede seguir mandando solo lo
   mínimo de hoy y el caso queda incompleto pero válido, no rechazado.
-- Requiere `rol=medico`. Genera `reporte_pdf_url` y `reporte_familiar_pdf_url` en la misma
-  respuesta, igual que hoy.
+- Requiere sesión de médico (rol `medico` o `superadmin`, vía `EsMedico`). Genera
+  `reporte_pdf_url` y `reporte_familiar_pdf_url` en la misma respuesta, igual que hoy — el
+  médico decide con cuál de los dos se queda o cuál entrega según a quién se lo esté explicando.
 
-## HU-11 — Sesión comunidad: registra el caso básico y accede al reporte familiar
+## HU-11 — Superadmin: crear usuarios médicos
 
-Como encargado de comunidad (autoridad tradicional, promotor de salud comunitario) quiero poder
-registrar las mediciones básicas de un menor y obtener el reporte familiar, sin necesitar acceso
-a la parte clínica del formulario que no me corresponde evaluar.
+Como superadministrador quiero poder crear cuentas de médico (usuario, contraseña inicial, datos
+básicos), porque ya no hay registro público y alguien tiene que dar de alta a cada médico que va
+a usar el sistema.
 
-- Mismo endpoint `POST /api/v1/evaluaciones/`, pero con `rol=comunidad`: los bloques
-  `signos_clinicos` y `calidad_medicion` quedan **bloqueados** (`400` si se intenta mandarlos) —
-  esos dos son criterio clínico, no un registro comunitario. El resto de bloques (cultural,
-  hábitos, actividad, contexto familiar) sí están disponibles.
-- La respuesta para `rol=comunidad` **no incluye `reporte_pdf_url`** (el técnico es solo para
-  médico) — solo `reporte_familiar_pdf_url`. Si el caso tiene una `alerta_critica=True`, la
-  respuesta además indica explícitamente que debe remitirse a valoración médica presencial, para
-  que la ausencia del reporte técnico no se lea como "todo bien".
-- `observaciones_autoridad_tradicional` (HU-8) es el campo pensado para llenarse justo en esta
-  sesión.
+- `POST /api/v1/usuarios/` — exclusivo de rol `superadmin` (`EsSuperadmin`). Recibe `username`,
+  `password`, `email`, `first_name`, `last_name`, `rol` (`medico` o `superadmin`). Crea el
+  `User` y su `PerfilUsuario` en el mismo paso.
+- `GET /api/v1/usuarios/` / `GET /api/v1/usuarios/{id}/` — lista y detalle, para que el
+  superadmin vea qué cuentas existen y con qué rol.
+- Un superadmin puede crear a otro superadmin, no solo médicos — el sistema no limita cuántos
+  superadmins hay, pero por defecto todo usuario nuevo se crea como `medico` si no se especifica
+  otra cosa.
 
-## HU-12 — Cada reporte usa solo los campos de su audiencia
+## HU-12 — Superadmin: modificar, desactivar y cambiar contraseña de usuarios
+
+Como superadministrador quiero poder editar los datos de un usuario existente, desactivarlo si
+deja de trabajar en el proyecto, y resetear su contraseña si la olvidó o si sospecho que quedó
+expuesta — sin tener que borrar el historial de qué médico generó qué reporte.
+
+- `PATCH /api/v1/usuarios/{id}/` — edita `email`, `first_name`, `last_name`, `rol`,
+  `is_active`. Exclusivo de `EsSuperadmin`. No acepta cambiar la contraseña por esta vía (ver
+  el punto siguiente) para que un `PATCH` normal de "editar mis datos" nunca deje una contraseña
+  viajando por accidente.
+- `DELETE /api/v1/usuarios/{id}/` — no borra el usuario, lo desactiva (`is_active=False`): el
+  historial de evaluaciones/reportes generados por ese médico se conserva intacto, pero ya no
+  puede iniciar sesión.
+- `POST /api/v1/usuarios/{id}/cambiar-password/` — acción exclusiva del superadmin para fijarle
+  una contraseña nueva a cualquier usuario. Al aplicarla, se invalida cualquier token de sesión
+  previo de ese usuario (tiene que volver a iniciar sesión con la contraseña nueva) — un cambio
+  de contraseña casi siempre ocurre porque la anterior se sospecha comprometida, así que dejar
+  vivo el token viejo anularía el propósito del cambio.
+- Un médico **no** tiene acceso a ninguno de estos endpoints sobre sí mismo ni sobre otros — el
+  cambio de contraseña de un médico solo lo puede iniciar un superadmin (no hay flujo de
+  "olvidé mi contraseña" autoservido en esta primera versión).
+
+## HU-13 — Cada reporte usa solo los campos de su audiencia
 
 Como desarrollador del pipeline de análisis quiero que el payload que se le arma al LLM para cada
 tipo de reporte incluya solo los campos relevantes para esa audiencia, para no filtrar

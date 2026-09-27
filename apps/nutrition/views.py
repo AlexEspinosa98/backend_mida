@@ -1,6 +1,7 @@
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.accounts.permissions import EsMedico
 from apps.patients.models import Paciente
 
 from .plan import EDAD_MINIMA_ALIMENTACION_COMPLEMENTARIA_MESES, catalogo_disponible
@@ -14,7 +15,10 @@ class CatalogoDisponibleView(APIView):
     previsualizar qué catálogo efectivo vería un paciente con esa edad y
     etnia (catálogo general + alimentos propios de su comunidad, menos los
     excluidos para ella) sin tener que generar una evaluación completa --
-    pensado para el simulador de frontend (ver /simulador/)."""
+    pensado para el simulador de frontend (ver /simulador/), que ahora
+    requiere login de médico (ya no hay acceso libre de comunidad)."""
+
+    permission_classes = [EsMedico]
 
     def get(self, request):
         try:

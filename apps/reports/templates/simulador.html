@@ -110,6 +110,13 @@
   }
   pre.json-crudo { background: #14181f; color: #d7dce3; padding: 12px; border-radius: 6px; font-size: 11px; overflow-x: auto; max-height: 260px; }
   details summary { cursor: pointer; font-size: 12px; color: var(--texto-suave); margin: 10px 0; }
+  .barra-sesion { display: flex; align-items: center; gap: 10px; padding: 8px 20px; background: white; border-bottom: 1px solid var(--borde); font-size: 12.5px; }
+  .barra-sesion .quien { color: var(--texto-suave); }
+  .barra-sesion .quien strong { color: var(--texto); }
+  #panel-login { max-width: 360px; margin: 60px auto; background: white; border: 1px solid var(--borde); border-radius: 8px; padding: 24px; }
+  #panel-login h2 { margin: 0 0 4px; font-size: 16px; color: var(--azul); }
+  #panel-login p { margin: 0 0 16px; font-size: 12px; color: var(--texto-suave); }
+  #panel-login label { margin-top: 10px; }
 </style>
 </head>
 <body>
@@ -120,16 +127,37 @@
 </header>
 <div class="aviso-simulador">
   ⚠ Esto NO es la interfaz final -- es una página de prueba de un solo archivo
-  (<code>apps/reports/templates/simulador.html</code>) para validar la interacción médico↔API↔PDF
-  y el efecto del catálogo por comunidad, y así alinear el frontend real antes de construirlo.
+  (<code>apps/reports/templates/simulador.html</code>) para validar la interacción médico↔API↔PDF,
+  y así alinear el frontend real antes de construirlo. Requiere iniciar sesión como médico -- ya
+  no hay acceso libre de comunidad.
 </div>
 
-<nav class="tabs">
+<section id="panel-login">
+  <h2>Iniciar sesión</h2>
+  <p>Solo cuentas de médico (o superadmin) pueden usar el simulador. Las cuentas las crea un superadmin vía <code>/api/v1/usuarios/</code>.</p>
+  <form id="form-login">
+    <label>Usuario</label>
+    <input name="username" required autocomplete="username">
+    <label>Contraseña</label>
+    <input name="password" type="password" required autocomplete="current-password">
+    <div style="margin-top:16px;">
+      <button class="primario" type="submit" id="btn-login">Ingresar</button>
+      <span class="estado" id="estado-login"></span>
+    </div>
+  </form>
+</section>
+
+<div id="barra-sesion" class="barra-sesion" style="display:none;">
+  <span class="quien">Sesión: <strong id="quien-nombre"></strong> (<span id="quien-rol"></span>)</span>
+  <button class="secundario" id="btn-logout" type="button">Cerrar sesión</button>
+</div>
+
+<nav class="tabs" id="nav-tabs" style="display:none;">
   <button class="activa" data-tab="medico">Parte del médico</button>
-  <button data-tab="admin">Parte del admin (catálogo por comunidad)</button>
+  <button data-tab="admin">Catálogo de nutrición (solo lectura)</button>
 </nav>
 
-<main>
+<main id="main-app" style="display:none;">
 
   <!-- ============ TAB MÉDICO ============ -->
   <section id="tab-medico" class="panel activa">
@@ -193,8 +221,8 @@
       <a class="secundario" href="/admin/nutrition/alimento/" target="_blank" style="text-decoration:none; display:inline-block; margin-top:6px;">Abrir /admin/nutrition/alimento/ →</a>
     </p>
     <p class="estado">Esto de acá solo <strong>previsualiza el efecto</strong> de esa configuración: qué catálogo
-      efectivo (<code>GET /api/v1/nutricion/catalogo/</code>, solo lectura) vería un paciente según su edad y etnia
-      -- catálogo general + alimentos propios de su comunidad, menos los excluidos para ella.</p>
+      efectivo (<code>GET /api/v1/nutricion/catalogo/</code>, requiere sesión de médico) vería un paciente según
+      su edad y etnia -- catálogo general + alimentos propios de su comunidad, menos los excluidos para ella.</p>
 
     <div class="catalogo-controles">
       <div>
@@ -223,6 +251,74 @@
 // raíz del dominio en vez de al prefijo real, y todos los fetch de abajo revientan en 404.
 const API = window.location.pathname.replace(/simulador\/?$/, "") + "api/v1";
 const NOMBRES_GRUPO = { fruta: "Frutas", verdura: "Verduras", proteina: "Proteínas", cereal: "Cereales / tubérculos", lacteo: "Lácteos" };
+
+// ---- sesión (token de rest_framework.authtoken, guardado solo en este navegador) ----
+let sesion = null;
+try {
+  const guardada = localStorage.getItem("mida_sesion");
+  if (guardada) sesion = JSON.parse(guardada);
+} catch (err) { sesion = null; }
+
+function headersAuth(extra) {
+  const h = Object.assign({}, extra);
+  if (sesion && sesion.token) h["Authorization"] = `Token ${sesion.token}`;
+  return h;
+}
+
+function mostrarApp() {
+  document.getElementById("panel-login").style.display = "none";
+  document.getElementById("barra-sesion").style.display = "flex";
+  document.getElementById("nav-tabs").style.display = "flex";
+  document.getElementById("main-app").style.display = "block";
+  document.getElementById("quien-nombre").textContent = sesion.nombre;
+  document.getElementById("quien-rol").textContent = sesion.rol;
+}
+
+function mostrarLogin() {
+  document.getElementById("panel-login").style.display = "block";
+  document.getElementById("barra-sesion").style.display = "none";
+  document.getElementById("nav-tabs").style.display = "none";
+  document.getElementById("main-app").style.display = "none";
+}
+
+if (sesion) mostrarApp(); else mostrarLogin();
+
+document.getElementById("form-login").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const form = ev.target;
+  const btn = document.getElementById("btn-login");
+  const estado = document.getElementById("estado-login");
+  btn.disabled = true;
+  estado.className = "estado";
+  estado.textContent = "Ingresando...";
+  try {
+    const resp = await fetch(`${API}/auth/login/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: form.username.value, password: form.password.value }),
+    });
+    const datos = await resp.json();
+    if (!resp.ok) {
+      estado.className = "estado error";
+      estado.textContent = datos.detail || datos.non_field_errors || "Usuario o contraseña incorrectos.";
+      return;
+    }
+    sesion = { token: datos.token, nombre: datos.nombre, rol: datos.rol };
+    localStorage.setItem("mida_sesion", JSON.stringify(sesion));
+    mostrarApp();
+  } catch (err) {
+    estado.className = "estado error";
+    estado.textContent = "No se pudo contactar la API: " + err.message;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById("btn-logout").addEventListener("click", () => {
+  sesion = null;
+  localStorage.removeItem("mida_sesion");
+  mostrarLogin();
+});
 
 // ---- tabs ----
 document.querySelectorAll("nav.tabs button").forEach(btn => {
@@ -275,9 +371,10 @@ document.getElementById("form-evaluacion").addEventListener("submit", async (ev)
   try {
     const resp = await fetch(`${API}/evaluaciones/`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: headersAuth({ "Content-Type": "application/json" }),
       body: JSON.stringify(payload),
     });
+    if (resp.status === 401) { mostrarLogin(); return; }
     const datos = await resp.json();
     if (!resp.ok) {
       estado.className = "estado error";
@@ -311,12 +408,24 @@ function renderResultadoMedico(el, datos) {
   }
   if (datos.reporte_pdf_url) {
     html += `<div class="enlaces-pdf">
-      <a href="${datos.reporte_pdf_url}" target="_blank">Ver reporte técnico (PDF)</a>
-      <a class="familiar" href="${datos.reporte_familiar_pdf_url}" target="_blank">Ver reporte familiar (PDF)</a>
+      <a href="#" data-pdf="${datos.reporte_pdf_url}">Ver reporte técnico (PDF)</a>
+      <a class="familiar" href="#" data-pdf="${datos.reporte_familiar_pdf_url}">Ver reporte familiar (PDF)</a>
     </div>`;
   }
   html += `<details><summary>Ver JSON crudo de la respuesta</summary><pre class="json-crudo">${JSON.stringify(datos, null, 2)}</pre></details>`;
   el.innerHTML = html;
+  // El PDF también exige token -- un <a href target=_blank> normal no puede mandar el header
+  // Authorization, así que se descarga como blob autenticado y se abre ese blob.
+  el.querySelectorAll("a[data-pdf]").forEach((a) => {
+    a.addEventListener("click", async (ev) => {
+      ev.preventDefault();
+      const resp = await fetch(a.dataset.pdf, { headers: headersAuth() });
+      if (resp.status === 401) { mostrarLogin(); return; }
+      if (!resp.ok) { alert(`No se pudo obtener el PDF (${resp.status}).`); return; }
+      const blob = await resp.blob();
+      window.open(URL.createObjectURL(blob), "_blank");
+    });
+  });
 }
 
 // ---- catálogo por comunidad ----
@@ -330,7 +439,8 @@ document.getElementById("btn-catalogo").addEventListener("click", async () => {
   if (etnia) params.set("etnia", etnia);
 
   try {
-    const resp = await fetch(`${API}/nutricion/catalogo/?${params}`);
+    const resp = await fetch(`${API}/nutricion/catalogo/?${params}`, { headers: headersAuth() });
+    if (resp.status === 401) { mostrarLogin(); return; }
     const datos = await resp.json();
     if (!resp.ok) { el.innerHTML = `<p class="estado error">Error: ${JSON.stringify(datos)}</p>`; return; }
     if (!datos.aplica) { el.innerHTML = `<p class="estado">${datos.motivo_no_aplica}</p>`; return; }
