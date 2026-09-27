@@ -107,6 +107,82 @@ LEYENDA_COLORES = [
     },
 ]
 
+# Misma clasificación de LEYENDA_COLORES, pero en el lenguaje natural que la
+# familia necesita -- sin "desviación estándar" ni rangos numéricos, aportado
+# por Fredy Jiménez (nutricionista) para reemplazar las etiquetas cortas del
+# semáforo ("Requiere atención", etc.) con una explicación real de qué
+# significa cada resultado. Se usa en la sección "¿Qué encontramos?" del
+# reporte familiar (ver apps/reports/pdf.py y report_familiar_pdf.html).
+LEYENDA_COLORES_FAMILIAR = [
+    {
+        "clave": "normal",
+        "color": "verde",
+        "nivel": "Normal",
+        "explicacion": (
+            "El niño está creciendo de forma saludable. Su estatura, peso, "
+            "contextura corporal y desarrollo físico general corresponden a lo "
+            "esperado para su edad. No se requiere ningún tratamiento ni ajuste "
+            "en la alimentación; basta con continuar los controles de "
+            "crecimiento habituales."
+        ),
+    },
+    {
+        "clave": "moderado",
+        "color": "amarillo",
+        "nivel": "Moderado",
+        "explicacion": (
+            "El niño muestra un desfase leve a moderado en su crecimiento o en "
+            "su peso, lo que puede ser una señal temprana de que su "
+            "alimentación no ha sido suficiente o adecuada durante un tiempo. "
+            "No es una situación de emergencia, pero sí conviene prestarle "
+            "atención: mejorar la alimentación, hacer seguimiento más cercano "
+            "y evaluar si hay algo (una enfermedad reciente, poco apetito, "
+            "dificultades económicas para la comida) que esté afectando su "
+            "desarrollo."
+        ),
+    },
+    {
+        "clave": "severo",
+        "color": "rojo",
+        "nivel": "Severo",
+        "explicacion": (
+            "El niño presenta un desfase importante en su crecimiento, peso o "
+            "contextura corporal, lo cual indica un problema nutricional serio "
+            "que ya está afectando su desarrollo de forma notoria. En este "
+            "punto sí se necesita intervención médica y nutricional activa "
+            "-- no basta con observar -- y es importante actuar pronto para "
+            "evitar que la situación empeore o deje consecuencias a largo "
+            "plazo."
+        ),
+    },
+    {
+        "clave": "critico",
+        "color": "rojo",
+        "nivel": "Crítico",
+        "explicacion": (
+            "El niño se encuentra en una condición de alto riesgo para su "
+            "salud, con un compromiso severo de su crecimiento, peso o estado "
+            "físico general. Se requiere atención médica urgente e inmediata, "
+            "posiblemente con manejo hospitalario, ya que existe riesgo de "
+            "complicaciones serias si no se interviene sin demora."
+        ),
+    },
+    {
+        "clave": "no_aplica",
+        "color": "gris",
+        "nivel": "No aplica",
+        "explicacion": (
+            "Este resultado no significa que el niño tenga un problema, sino "
+            "que ese indicador en particular no se puede evaluar en su caso. "
+            "Esto ocurre normalmente porque el indicador no corresponde a su "
+            "edad (por ejemplo, algunas medidas solo se usan hasta cierta "
+            "edad), o porque faltó algún dato necesario para calcularlo. "
+            "Simplemente no hay información suficiente o pertinente para "
+            "clasificar ese aspecto en ese momento."
+        ),
+    },
+]
+
 GLOSARIO_INDICADORES: dict[str, dict] = {
     "TE": {
         "nombre": "Talla para la Edad",

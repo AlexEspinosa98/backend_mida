@@ -126,6 +126,21 @@ h2 {
 .semaforo-rojo .texto-semaforo { color: #d03b3b; font-weight: 700; }
 .semaforo-amarillo .texto-semaforo { color: #8a5a00; font-weight: 700; }
 
+.leyenda-familiar { margin-top: 4px; }
+.leyenda-familiar-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid #e1e0d9;
+  border-radius: 6px;
+  margin-bottom: 6px;
+}
+.leyenda-familiar-item .punto { margin-top: 3px; }
+.leyenda-familiar-item .contenido { flex: 1; }
+.leyenda-familiar-item .nivel-nombre { font-weight: 700; display: block; margin-bottom: 2px; }
+.leyenda-familiar-item p { margin: 0; font-size: 10.5px; color: #52514e; }
+
 .fila-comunitaria {
   margin-left: 20px;
   margin-top: -3px;

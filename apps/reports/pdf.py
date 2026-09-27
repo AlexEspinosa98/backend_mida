@@ -10,6 +10,7 @@ from apps.who_standards.glossary import (
     EXPLICACION_ESTANDAR_OMS,
     GLOSARIO_INDICADORES,
     LEYENDA_COLORES,
+    LEYENDA_COLORES_FAMILIAR,
 )
 from apps.who_standards.local_patterns import EXPLICACION_METODOLOGIA as EXPLICACION_PATRON_LOCAL
 from apps.who_standards.local_patterns import (
@@ -156,6 +157,7 @@ def generar_pdf_familiar_evaluacion(evaluacion) -> bytes:
         "resumen_familiar": getattr(evaluacion.reporte, "resumen_familiar", ""),
         "alerta_critica": evaluacion.alerta_critica,
         "sugerencias": hallazgos["sugerencias_familiares"],
+        "leyenda_colores_familiar": LEYENDA_COLORES_FAMILIAR,
         "explicacion_estandar_oms": EXPLICACION_ESTANDAR_OMS,
         "explicacion_patron_local": (
             EXPLICACION_PATRON_LOCAL_FAMILIAR if evaluacion.paciente.etnia != "ninguna" else None

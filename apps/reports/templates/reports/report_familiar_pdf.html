@@ -73,6 +73,19 @@
     {% endfor %}
   </section>
 
+  <section class="leyenda-familiar">
+    <h2>¿Qué significa cada resultado?</h2>
+    {% for l in leyenda_colores_familiar %}
+    <div class="leyenda-familiar-item semaforo-{{ l.color }}">
+      <span class="punto"></span>
+      <div class="contenido">
+        <span class="nivel-nombre">{{ l.nivel }}</span>
+        <p>{{ l.explicacion }}</p>
+      </div>
+    </div>
+    {% endfor %}
+  </section>
+
   <section class="que-hacer">
     <h2>¿Qué hacer ahora?</h2>
     <ul class="lista-que-hacer">
