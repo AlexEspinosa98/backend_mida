@@ -8,9 +8,21 @@ from django.db import transaction
 from apps.agents.graph import build_graph
 from apps.patients.models import Paciente
 
-from .models import Evaluacion, ReporteGenerado, ResultadoIndicador
+from .models import (
+    ActividadFisica,
+    CalidadMedicion,
+    ContextoFamiliarTerritorial,
+    Evaluacion,
+    HabitosAlimentarios,
+    ReporteGenerado,
+    ResultadoIndicador,
+    SignosClinicos,
+)
 
 _grafo_compilado = None
+
+_SIGNOS_QUE_ESCALAN_ALERTA = ("deshidratacion", "dificultad_respiratoria")
+_NIVELES_QUE_ESCALAN_ALERTA = {"severo", "critico"}
 
 
 def _get_grafo():
@@ -18,6 +30,18 @@ def _get_grafo():
     if _grafo_compilado is None:
         _grafo_compilado = build_graph()
     return _grafo_compilado
+
+
+def _generar_codigo_caso() -> str:
+    """MIDA-<año>-<consecutivo de 6 dígitos> (HU-1). No hay alta concurrencia
+    esperada en este sistema, así que un conteo simple dentro de la misma
+    transacción de creación es suficiente -- una colisión real requeriría dos
+    inserciones simultáneas exactas, y el UniqueConstraint de todas formas
+    protegería la integridad si llegara a pasar."""
+
+    anio = date.today().year
+    consecutivo = Evaluacion.objects.filter(codigo_caso__startswith=f"MIDA-{anio}-").count() + 1
+    return f"MIDA-{anio}-{consecutivo:06d}"
 
 
 def _resolver_paciente(datos_paciente: dict | None, sexo: str, edad_meses, fecha_evaluacion) -> Paciente:
@@ -46,7 +70,44 @@ def _resolver_paciente(datos_paciente: dict | None, sexo: str, edad_meses, fecha
         fecha_nacimiento=fecha_nacimiento,
         sexo=sexo,
         etnia=datos_paciente.get("etnia") or Paciente.Etnia.NINGUNA,
+        comunidad_asentamiento=datos_paciente.get("comunidad_asentamiento") or "",
+        municipio=datos_paciente.get("municipio") or "",
+        departamento=datos_paciente.get("departamento") or "",
+        cuidador_principal=datos_paciente.get("cuidador_principal") or "",
+        lengua_principal=datos_paciente.get("lengua_principal") or "",
+        requiere_mediacion_cultural=datos_paciente.get("requiere_mediacion_cultural", False),
     )
+
+
+def _nota_calidad_medicion(calidad: dict | None) -> str:
+    """HU-4 -- regla clínica, no del LLM: si la balanza no estaba calibrada o la
+    medición no se repitió, se lo advierte explícitamente a quien lea el reporte
+    técnico, sin depender de que el LLM lo "note" en la prosa."""
+
+    if not calidad:
+        return ""
+    avisos = []
+    if calidad.get("balanza_calibrada") not in (None, "si"):
+        avisos.append("la balanza no estaba calibrada (o no se reportó)")
+    if calidad.get("medicion_repetida") not in (None, "si"):
+        avisos.append("la medición no se repitió (o no se reportó)")
+    if not avisos:
+        return ""
+    return (
+        "\n\nNota de calidad de la medición: " + " y ".join(avisos)
+        + " -- interpretar las cifras antropométricas con esta salvedad."
+    )
+
+
+def _requiere_escalar_alerta(signos: dict | None, resultados: list[dict]) -> bool:
+    """HU-5 -- regla clínica, no del LLM: deshidratación o dificultad respiratoria
+    junto con un indicador ya severo/crítico fuerza alerta_critica=True."""
+
+    if not signos:
+        return False
+    if not any(signos.get(s) for s in _SIGNOS_QUE_ESCALAN_ALERTA):
+        return False
+    return any(r["nivel_alerta"] in _NIVELES_QUE_ESCALAN_ALERTA for r in resultados)
 
 
 @transaction.atomic
@@ -61,6 +122,8 @@ def ejecutar_evaluacion(datos: dict) -> Evaluacion:
 
     evaluacion = Evaluacion.objects.create(
         paciente=paciente,
+        codigo_caso=datos.get("codigo_caso") or _generar_codigo_caso(),
+        notas_administrativas=datos.get("notas_administrativas") or "",
         fecha_evaluacion=fecha_evaluacion,
         edad_dias=max(edad_dias, 0),
         edad_meses_decimal=edad_meses,
@@ -69,9 +132,31 @@ def ejecutar_evaluacion(datos: dict) -> Evaluacion:
         tipo_medicion_talla=datos["tipo_medicion_talla"],
         perimetro_cefalico_cm=datos.get("perimetro_cefalico_cm"),
         perimetro_braquial_cm=datos.get("perimetro_braquial_cm"),
+        perimetro_cintura_cm=datos.get("perimetro_cintura_cm"),
+        perimetro_cadera_cm=datos.get("perimetro_cadera_cm"),
         edema_bilateral=datos.get("edema_bilateral", False),
         estado=Evaluacion.Estado.PROCESANDO,
     )
+
+    calidad_medicion = datos.get("calidad_medicion")
+    if calidad_medicion:
+        CalidadMedicion.objects.create(evaluacion=evaluacion, **calidad_medicion)
+
+    signos_clinicos = datos.get("signos_clinicos")
+    if signos_clinicos:
+        SignosClinicos.objects.create(evaluacion=evaluacion, **signos_clinicos)
+
+    habitos_alimentarios = datos.get("habitos_alimentarios")
+    if habitos_alimentarios:
+        HabitosAlimentarios.objects.create(evaluacion=evaluacion, **habitos_alimentarios)
+
+    actividad_fisica = datos.get("actividad_fisica")
+    if actividad_fisica:
+        ActividadFisica.objects.create(evaluacion=evaluacion, **actividad_fisica)
+
+    contexto_familiar = datos.get("contexto_familiar")
+    if contexto_familiar:
+        ContextoFamiliarTerritorial.objects.create(evaluacion=evaluacion, **contexto_familiar)
 
     estado_inicial = {
         "paciente": {"sexo": sexo, "edad_meses": float(edad_meses), "etnia": paciente.etnia},
@@ -121,14 +206,20 @@ def ejecutar_evaluacion(datos: dict) -> Evaluacion:
 
     ReporteGenerado.objects.create(
         evaluacion=evaluacion,
-        resumen_clinico=resultado_final.get("resumen_clinico", ""),
+        resumen_clinico=(
+            resultado_final.get("resumen_clinico", "") + _nota_calidad_medicion(calidad_medicion)
+        ),
         resumen_familiar=resultado_final.get("resumen_familiar", ""),
         plan_nutricional=resultado_final.get("plan_nutricional", {}),
         tips_nutricionales=resultado_final.get("tips_nutricionales", ""),
+        fecha_reporte=datos.get("fecha_reporte") or fecha_evaluacion,
+        objetivo_reporte=datos.get("objetivo_reporte") or "",
     )
 
     evaluacion.estado = Evaluacion.Estado.COMPLETADA
-    evaluacion.alerta_critica = hallazgos["alerta_critica"]
+    evaluacion.alerta_critica = hallazgos["alerta_critica"] or _requiere_escalar_alerta(
+        signos_clinicos, hallazgos["resultados"]
+    )
     evaluacion.save(update_fields=["estado", "alerta_critica"])
 
     return evaluacion

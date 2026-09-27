@@ -4,10 +4,23 @@
 restringido a médicos, y un flujo de superadmin para crear/editar/desactivar médicos y resetear
 contraseñas — ver `apps/accounts/`.
 
-El modelo de datos ampliado (HU-1 a HU-8) **todavía no está implementado en el backend**, pero su
-contrato JSON ya quedó fijado (ver "Contrato JSON completo" más abajo) para que el frontend
-pueda construirse contra él en paralelo mientras se implementa — los nombres de campo y valores
-de esa sección son definitivos, no van a cambiar al implementarlos.
+El modelo de datos ampliado (HU-1 a HU-8) **está implementado y persistido** exactamente según el
+contrato JSON documentado más abajo (`apps/patients/models.py`, `apps/assessments/models.py`,
+`apps/assessments/serializers.py`, `apps/assessments/services.py`). Dos matices sobre qué tan
+completa quedó cada una:
+
+- **HU-4 y HU-5 sí tienen su regla clínica activa** (no solo el dato guardado): una calidad de
+  medición deficiente agrega una nota de precaución al resumen técnico, y deshidratación/
+  dificultad respiratoria junto con un indicador severo/crítico fuerza `alerta_critica=True`,
+  automáticamente, sin depender del LLM.
+- **HU-6 (hábitos alimentarios) por ahora solo se guarda** — todavía NO se cruza contra
+  `alimentos_escasos` al generar el plan nutricional de `apps.nutrition` (el plan sigue
+  viniendo solo del catálogo, sin ese contexto adicional). Queda como mejora pendiente.
+- **HU-13 (separación técnico/familiar)**: los bloques nuevos se guardan y se devuelven completos
+  en la respuesta de la API (para que el médico los consulte), pero el LLM de síntesis todavía no
+  recibe un payload diferenciado por bloque — sigue recibiendo lo mismo que antes de esta
+  ampliación. La lectura selectiva por audiencia descrita en HU-13 queda como trabajo futuro
+  sobre el grafo de `apps.agents`.
 
 Documenta cómo se vería la ampliación del formulario que ya existe (`Paciente` + `Evaluacion`,
 hoy solo nombres, sexo, etnia, peso, talla, perímetros braquial/cefálico, edema) para cubrir el

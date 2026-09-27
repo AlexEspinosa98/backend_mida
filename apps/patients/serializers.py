@@ -14,6 +14,12 @@ class PacienteSerializer(serializers.ModelSerializer):
             "fecha_nacimiento",
             "sexo",
             "etnia",
+            "comunidad_asentamiento",
+            "municipio",
+            "departamento",
+            "cuidador_principal",
+            "lengua_principal",
+            "requiere_mediacion_cultural",
             "creado_en",
         ]
         read_only_fields = ["id", "creado_en"]

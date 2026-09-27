@@ -20,6 +20,16 @@ class Paciente(models.Model):
     fecha_nacimiento = models.DateField()
     sexo = models.CharField(max_length=1, choices=Sexo.choices)
     etnia = models.CharField(max_length=10, choices=Etnia.choices, default=Etnia.NINGUNA)
+
+    # Datos culturales y territoriales (HU-2) -- todos opcionales: se completan cuando
+    # se conocen, no bloquean el registro mínimo de hoy.
+    comunidad_asentamiento = models.CharField(max_length=150, blank=True, default="")
+    municipio = models.CharField(max_length=150, blank=True, default="")
+    departamento = models.CharField(max_length=150, blank=True, default="")
+    cuidador_principal = models.CharField(max_length=150, blank=True, default="")
+    lengua_principal = models.CharField(max_length=100, blank=True, default="")
+    requiere_mediacion_cultural = models.BooleanField(default=False)
+
     creado_en = models.DateTimeField(auto_now_add=True)
     actualizado_en = models.DateTimeField(auto_now=True)
 
