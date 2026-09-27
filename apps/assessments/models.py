@@ -26,7 +26,7 @@ class Evaluacion(models.Model):
     # UUID interno. blank=True + UniqueConstraint condicional (igual que
     # Paciente.documento_identidad) porque las filas creadas antes de esta columna
     # quedan en blanco y no deben chocar entre sí contra un unique=True estricto.
-    codigo_caso = models.CharField(max_length=40, blank=True, default="")
+    codigo_caso = models.CharField(max_length=80, blank=True, default="")
     notas_administrativas = models.TextField(blank=True, default="")
 
     fecha_evaluacion = models.DateField()

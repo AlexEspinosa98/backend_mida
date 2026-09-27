@@ -139,7 +139,7 @@ class EvaluacionInputSerializer(serializers.Serializer):
     )
     fecha_evaluacion = serializers.DateField(required=False)
 
-    codigo_caso = serializers.CharField(max_length=40, required=False, allow_blank=True)
+    codigo_caso = serializers.CharField(max_length=80, required=False, allow_blank=True)
     fecha_reporte = serializers.DateField(required=False)
     objetivo_reporte = serializers.CharField(max_length=200, required=False, allow_blank=True)
     notas_administrativas = serializers.CharField(required=False, allow_blank=True)
