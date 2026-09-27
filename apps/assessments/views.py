@@ -1,8 +1,10 @@
 from django.db import IntegrityError
+from django.db.models import Q
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from rest_framework import status
-from rest_framework.generics import ListAPIView, RetrieveAPIView
+from rest_framework.generics import ListAPIView, ListCreateAPIView, RetrieveAPIView
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -10,20 +12,56 @@ from apps.accounts.permissions import EsMedico
 from apps.patients.models import Paciente
 
 from .models import Evaluacion
-from .serializers import EvaluacionInputSerializer, EvaluacionSerializer
+from .serializers import EvaluacionInputSerializer, EvaluacionResumenSerializer, EvaluacionSerializer
 from .services import ejecutar_evaluacion
 
 
-class EvaluacionCreateView(APIView):
-    """POST /api/v1/evaluaciones/
+class EvaluacionPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = "page_size"
+    max_page_size = 100
 
-    Recibe las mediciones antropométricas de un niño (0-5 años), ejecuta
-    el pipeline multiagente (LangGraph) que calcula los 6 indicadores OMS,
-    persiste el resultado y devuelve el reporte estructurado en JSON."""
+
+class EvaluacionListCreateView(ListCreateAPIView):
+    """GET /api/v1/evaluaciones/ — dashboard de reportes: listado paginado de
+    todas las evaluaciones (no solo de un paciente puntual), con filtros por
+    querystring: estado, alerta_critica (1/0), codigo_caso (contiene),
+    paciente (contiene, busca en nombres y apellidos), fecha_desde/fecha_hasta
+    (sobre fecha_evaluacion). Orden más reciente primero.
+
+    POST /api/v1/evaluaciones/ — sin cambios: crea una evaluación (ver
+    EvaluacionInputSerializer para el contrato completo)."""
 
     permission_classes = [EsMedico]
+    serializer_class = EvaluacionResumenSerializer
+    pagination_class = EvaluacionPagination
 
-    def post(self, request):
+    def get_queryset(self):
+        qs = (
+            Evaluacion.objects.select_related("paciente", "reporte")
+            .prefetch_related("resultados")
+            .order_by("-creado_en")
+        )
+        params = self.request.query_params
+
+        if params.get("estado"):
+            qs = qs.filter(estado=params["estado"])
+        if params.get("alerta_critica") not in (None, ""):
+            es_critica = params["alerta_critica"].strip().lower() in ("1", "true", "si", "yes")
+            qs = qs.filter(alerta_critica=es_critica)
+        if params.get("codigo_caso"):
+            qs = qs.filter(codigo_caso__icontains=params["codigo_caso"])
+        if params.get("paciente"):
+            q = params["paciente"]
+            qs = qs.filter(Q(paciente__nombres__icontains=q) | Q(paciente__apellidos__icontains=q))
+        if params.get("fecha_desde"):
+            qs = qs.filter(fecha_evaluacion__gte=params["fecha_desde"])
+        if params.get("fecha_hasta"):
+            qs = qs.filter(fecha_evaluacion__lte=params["fecha_hasta"])
+
+        return qs
+
+    def create(self, request, *args, **kwargs):
         entrada = EvaluacionInputSerializer(data=request.data)
         entrada.is_valid(raise_exception=True)
 

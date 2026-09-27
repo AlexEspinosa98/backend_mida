@@ -320,6 +320,24 @@ La respuesta de `EvaluacionSerializer` no cambia de forma — sigue trayendo `id
 igual que ya se hace con `paciente`/`resultados`/`reporte` — se pueden consultar de vuelta en el
 mismo `GET /api/v1/evaluaciones/{id}/`.
 
+### Dashboard de reportes — `GET /api/v1/evaluaciones/`
+
+Listado paginado de **todas** las evaluaciones (no de un solo paciente), pensado para armar un
+dashboard sin tener que conocer de antemano el `paciente_id` de cada caso. Requiere sesión de
+médico, igual que todo lo demás.
+
+Query params opcionales: `estado` (`pendiente`/`procesando`/`completada`/`error`),
+`alerta_critica` (`1`/`0`/`true`/`false`), `codigo_caso` (contiene, no exacto), `paciente`
+(contiene, busca en nombres y apellidos), `fecha_desde`/`fecha_hasta` (sobre
+`fecha_evaluacion`, formato `YYYY-MM-DD`), `page`/`page_size` (paginación, hasta 100 por
+página). Orden: más reciente primero.
+
+Cada fila trae una versión resumida (`id`, `codigo_caso`, `paciente_nombre`, `paciente_etnia`,
+`fecha_evaluacion`, `estado`, `alerta_critica`, `nivel_alerta_maximo`, `reporte_pdf_url`,
+`reporte_familiar_pdf_url`, `creado_en`) — no el detalle completo del caso (eso sigue siendo
+`GET /api/v1/evaluaciones/{id}/`). La respuesta viene envuelta en el formato estándar de
+paginación de DRF: `{"count", "next", "previous", "results": [...]}`.
+
 ## HU-9 — Login obligatorio: solo médicos acceden al sistema
 
 Como administrador del sistema quiero que ningún endpoint clínico sea accesible sin iniciar

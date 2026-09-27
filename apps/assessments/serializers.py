@@ -350,3 +350,38 @@ class EvaluacionSerializer(serializers.ModelSerializer):
         if not request:
             return None
         return request.build_absolute_uri(get_script_prefix().rstrip("/") + ruta)
+
+
+_ORDEN_NIVEL_ALERTA = {"no_aplica": -1, "normal": 0, "moderado": 1, "severo": 2, "critico": 3}
+
+
+class EvaluacionResumenSerializer(EvaluacionSerializer):
+    """Una fila del dashboard de reportes (GET /api/v1/evaluaciones/) -- a
+    propósito más liviana que EvaluacionSerializer: sin los cinco bloques
+    anidados del formulario completo ni el detalle de cada indicador, solo lo
+    que se necesita para listar y decidir en qué caso entrar."""
+
+    paciente_nombre = serializers.CharField(source="paciente.nombre_completo", read_only=True)
+    paciente_etnia = serializers.CharField(source="paciente.etnia", read_only=True)
+    nivel_alerta_maximo = serializers.SerializerMethodField()
+
+    class Meta(EvaluacionSerializer.Meta):
+        fields = [
+            "id",
+            "codigo_caso",
+            "paciente_nombre",
+            "paciente_etnia",
+            "fecha_evaluacion",
+            "estado",
+            "alerta_critica",
+            "nivel_alerta_maximo",
+            "reporte_pdf_url",
+            "reporte_familiar_pdf_url",
+            "creado_en",
+        ]
+
+    def get_nivel_alerta_maximo(self, obj):
+        niveles = [r.nivel_alerta for r in obj.resultados.all()]
+        if not niveles:
+            return None
+        return max(niveles, key=lambda n: _ORDEN_NIVEL_ALERTA.get(n, -1))
