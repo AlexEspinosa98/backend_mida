@@ -455,7 +455,8 @@ document.getElementById("btn-catalogo").addEventListener("click", async () => {
           ? `<span class="badge" style="background:#4a3aa7">${a.region_especifica}</span>`
           : `<span class="badge badge-general">general</span>`;
         const kcal = a.calorias_por_porcion != null ? ` · ${Math.round(a.calorias_por_porcion)} kcal/porción` : "";
-        html += `<li>${badge} ${a.nombre}${kcal}</li>`;
+        const porcion = a.porcion_texto ? ` · ${a.porcion_texto}` : "";
+        html += `<li>${badge} ${a.nombre}${porcion}${kcal}</li>`;
       }
       html += `</ul>`;
     }

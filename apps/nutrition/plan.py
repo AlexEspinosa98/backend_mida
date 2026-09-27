@@ -78,6 +78,7 @@ def _info_nutricional_porcion(alimento: Alimento) -> dict:
 
     return {
         "porcion_g": porcion_g,
+        "porcion_texto": alimento.porcion_texto,
         "calorias_kcal": _escalar(alimento.calorias_kcal_100g),
         "proteina_g": _escalar(alimento.proteina_g_100g),
         "carbohidratos_g": _escalar(alimento.carbohidratos_g_100g),
@@ -226,6 +227,7 @@ def catalogo_disponible(edad_meses: float, etnia: str | None = None) -> dict[str
                 "nombre": alimento.nombre,
                 "region_especifica": alimento.region_especifica,
                 "porcion_g": alimento.porcion_referencia_g,
+                "porcion_texto": alimento.porcion_texto,
                 "calorias_kcal_100g": (
                     float(alimento.calorias_kcal_100g)
                     if alimento.calorias_kcal_100g is not None

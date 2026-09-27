@@ -97,10 +97,10 @@
           {% for dia in plan_nutricional.dias %}
           <tr>
             <td class="dia">{{ dia.dia }}</td>
-            <td>{% for a in dia.comidas.Desayuno %}{{ a.nombre }}{% if a.porcion_g %} ({{ a.porcion_g }}g){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
-            <td>{% for a in dia.comidas.Almuerzo %}{{ a.nombre }}{% if a.porcion_g %} ({{ a.porcion_g }}g){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
-            <td>{% for a in dia.comidas.Merienda %}{{ a.nombre }}{% if a.porcion_g %} ({{ a.porcion_g }}g){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
-            <td>{% for a in dia.comidas.Cena %}{{ a.nombre }}{% if a.porcion_g %} ({{ a.porcion_g }}g){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+            <td>{% for a in dia.comidas.Desayuno %}{{ a.nombre }}{% if a.porcion_texto %} ({{ a.porcion_texto }}){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+            <td>{% for a in dia.comidas.Almuerzo %}{{ a.nombre }}{% if a.porcion_texto %} ({{ a.porcion_texto }}){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+            <td>{% for a in dia.comidas.Merienda %}{{ a.nombre }}{% if a.porcion_texto %} ({{ a.porcion_texto }}){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+            <td>{% for a in dia.comidas.Cena %}{{ a.nombre }}{% if a.porcion_texto %} ({{ a.porcion_texto }}){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
             <td class="total-dia">
               {% if dia.totales_nutricionales.calorias_kcal %}{{ dia.totales_nutricionales.calorias_kcal|floatformat:0 }} kcal{% if not dia.totales_nutricionales.datos_completos %} <span class="incompleto">(incompleto)</span>{% endif %}{% else %}—{% endif %}
             </td>

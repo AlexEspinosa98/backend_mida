@@ -9,6 +9,18 @@ REGIONES_ESPECIFICAS_CHOICES = [
     choice for choice in Paciente.Etnia.choices if choice[0] != Paciente.Etnia.NINGUNA
 ]
 
+# (singular, plural) de cada unidad casera -- Alimento.UnidadCasera.choices solo
+# tiene el singular (para el <select> del admin), la pluralización real para el
+# texto del reporte vive acá.
+_UNIDAD_CASERA_TEXTO = {
+    "cucharada": ("cucharada", "cucharadas"),
+    "punado": ("puñado", "puñados"),
+    "pizca": ("pizca", "pizcas"),
+    "vaso_agua": ("vaso de agua", "vasos de agua"),
+    "chorro": ("chorro", "chorros"),
+    "unidad": ("unidad", "unidades"),
+}
+
 
 class Alimento(models.Model):
     """Catálogo de alimentos que el administrador puede agregar/quitar
@@ -70,8 +82,41 @@ class Alimento(models.Model):
     porcion_referencia_g = models.PositiveSmallIntegerField(
         null=True,
         blank=True,
-        help_text="Tamaño de una porción de referencia para un niño pequeño, en gramos (o mL para líquidos). Se usa para calcular el aporte calórico del plan.",
+        help_text="Tamaño de una porción de referencia para un niño pequeño, en gramos (o mL para líquidos). Se usa para calcular el aporte calórico del plan -- se sigue guardando aunque el reporte muestre la medida casera (ver campos de abajo), porque el cálculo de calorías/proteína del plan necesita gramos.",
     )
+
+    class UnidadCasera(models.TextChoices):
+        CUCHARADA = "cucharada", "Cucharada"
+        PUNADO = "punado", "Puñado"
+        PIZCA = "pizca", "Pizca"
+        VASO_AGUA = "vaso_agua", "Vaso de agua"
+        CHORRO = "chorro", "Chorro"
+        UNIDAD = "unidad", "Unidad / tamaño (ej. \"1 arepa pequeña\")"
+
+    # Medida casera para mostrar en el plan/PDF en vez de (o junto a) los gramos --
+    # pedido por Ines + nutricionista para adaptar el plan a alimentos de la
+    # comunidad Kogui. Todos opcionales: mientras no se llenen, el reporte sigue
+    # mostrando solo gramos (comportamiento de hoy) -- el nutricionista los va
+    # completando alimento por alimento desde /admin/.
+    unidad_casera = models.CharField(max_length=15, choices=UnidadCasera.choices, blank=True, default="")
+    cantidad_casera = models.DecimalField(
+        max_digits=4,
+        decimal_places=1,
+        null=True,
+        blank=True,
+        help_text="Ej. 2 (para \"2 cucharadas\"). Si se deja vacío con una unidad seleccionada, se asume 1.",
+    )
+    descripcion_casera = models.CharField(
+        max_length=100,
+        blank=True,
+        default="",
+        help_text=(
+            "Texto libre que reemplaza cantidad+unidad para casos que no encajan en el "
+            "patrón simple (ej. \"1 arepa pequeña\", \"medio plátano\"). Si se llena, tiene "
+            "prioridad sobre unidad_casera/cantidad_casera."
+        ),
+    )
+
     calorias_kcal_100g = models.DecimalField(
         max_digits=5,
         decimal_places=1,
@@ -99,3 +144,29 @@ class Alimento(models.Model):
         if self.calorias_kcal_100g is None or not self.porcion_referencia_g:
             return None
         return round(float(self.calorias_kcal_100g) * self.porcion_referencia_g / 100, 1)
+
+    @property
+    def porcion_texto(self) -> str | None:
+        """Texto de porción para mostrar en el plan/PDF: medida casera + gramos
+        entre paréntesis cuando hay medida casera cargada (ej. "2 cucharadas
+        (≈ 30 g)"); solo gramos si no se ha cargado ninguna medida casera aún
+        (comportamiento de hoy, sin romper nada mientras el nutricionista va
+        completando el catálogo)."""
+        texto_casero = None
+        if self.descripcion_casera:
+            texto_casero = self.descripcion_casera
+        elif self.unidad_casera:
+            singular, plural = _UNIDAD_CASERA_TEXTO[self.unidad_casera]
+            cantidad = self.cantidad_casera
+            if cantidad is None or cantidad == 1:
+                texto_casero = f"1 {singular}"
+            else:
+                texto_casero = f"{cantidad:g} {plural}"
+
+        if not self.porcion_referencia_g:
+            return texto_casero
+
+        gramos_texto = f"{self.porcion_referencia_g} g"
+        if texto_casero:
+            return f"{texto_casero} (≈ {gramos_texto})"
+        return gramos_texto
