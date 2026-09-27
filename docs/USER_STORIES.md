@@ -338,6 +338,27 @@ Cada fila trae una versión resumida (`id`, `codigo_caso`, `paciente_nombre`, `p
 `GET /api/v1/evaluaciones/{id}/`). La respuesta viene envuelta en el formato estándar de
 paginación de DRF: `{"count", "next", "previous", "results": [...]}`.
 
+### CRUD del catálogo de alimentos — `/api/v1/nutricion/alimentos/`
+
+Antes la única forma de agregar/editar/quitar un alimento era el admin de Django
+(`/admin/nutrition/alimento/`, que sigue existiendo y funcionando igual). Esto le da al
+frontend su propia pantalla de gestión de catálogo, sin depender de él.
+
+- `GET /api/v1/nutricion/alimentos/` (lista, sin paginar) y
+  `GET /api/v1/nutricion/alimentos/{id}/` (detalle) — cualquier médico.
+- `POST /api/v1/nutricion/alimentos/`, `PATCH/PUT /api/v1/nutricion/alimentos/{id}/`,
+  `DELETE /api/v1/nutricion/alimentos/{id}/` — **exclusivo de superadmin** (gestión de
+  catálogo, no un acto clínico puntual). `DELETE` borra el alimento de verdad (nada más lo
+  referencia por FK; los planes ya generados guardan su propia copia de nombre/porción/
+  calorías al momento de generarse, así que borrar un alimento del catálogo no rompe reportes
+  viejos). Para solo sacarlo temporalmente del catálogo sin perder su configuración, usar
+  `PATCH` con `{"disponible": false}` en vez de `DELETE`.
+- Filtros de listado por querystring: `grupo`, `region_especifica`, `disponible` (`1`/`0`),
+  `nombre` (contiene).
+- El payload de creación/edición trae todos los campos del modelo, incluida la medida casera
+  (`unidad_casera`, `cantidad_casera`, `descripcion_casera`) y los campos de solo lectura
+  calculados `porcion_texto` y `calorias_por_porcion`.
+
 ## HU-9 — Login obligatorio: solo médicos acceden al sistema
 
 Como administrador del sistema quiero que ningún endpoint clínico sea accesible sin iniciar
