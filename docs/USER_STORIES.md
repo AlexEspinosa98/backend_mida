@@ -1,9 +1,13 @@
 # Historias de usuario — MIDA (ampliación del formulario de tamizaje)
 
-**Estado:** el modelo de datos ampliado (HU-1 a HU-8) sigue siendo una propuesta de diseño, sin
-implementar. El flujo de acceso (HU-9 a HU-12) **sí está implementado**: login por token, acceso
+**Estado:** el flujo de acceso (HU-9 a HU-12) **está implementado**: login por token, acceso
 restringido a médicos, y un flujo de superadmin para crear/editar/desactivar médicos y resetear
 contraseñas — ver `apps/accounts/`.
+
+El modelo de datos ampliado (HU-1 a HU-8) **todavía no está implementado en el backend**, pero su
+contrato JSON ya quedó fijado (ver "Contrato JSON completo" más abajo) para que el frontend
+pueda construirse contra él en paralelo mientras se implementa — los nombres de campo y valores
+de esa sección son definitivos, no van a cambiar al implementarlos.
 
 Documenta cómo se vería la ampliación del formulario que ya existe (`Paciente` + `Evaluacion`,
 hoy solo nombres, sexo, etnia, peso, talla, perímetros braquial/cefálico, edema) para cubrir el
@@ -169,6 +173,139 @@ probable de uno donde el entorno es el factor dominante — cambia la recomendac
   comunitario le haya comunicado al médico durante la visita — lo registra el médico en su misma
   sesión (ya no hay una sesión de comunidad aparte, ver HU-9/HU-10), como cualquier otro campo del
   formulario.
+
+## Contrato JSON completo — `POST /api/v1/evaluaciones/`
+
+**Este es el contrato que el backend va a implementar para aceptar el formulario completo.**
+Todo lo de acá abajo son nombres y valores definitivos — el frontend puede alinearse a esto ya
+mismo, en paralelo a que se implemente. Requiere sesión de médico (`Authorization: Token
+<token>`), igual que hoy.
+
+Todo lo que ya existe (`sexo`, `edad_meses`, `peso_kg`, `talla_cm`, `tipo_medicion_talla`,
+`perimetro_cefalico_cm`, `perimetro_braquial_cm`, `edema_bilateral`, `paciente.*`) se mantiene
+con el mismo nombre y las mismas validaciones que hoy — nada de eso cambia. Lo nuevo son los
+campos de `paciente` de HU-2, los campos sueltos de HU-1/HU-3, y los cinco bloques anidados
+opcionales de HU-4 a HU-8.
+
+**Para evitar que se repita el mismo tipo de error 400 que ya salió** (`"masculino"` en vez de
+`"M"`, `"pie"` en vez de `"de_pie"`), el backend va a **aceptar alias de entrada** en los dos
+campos donde es más fácil equivocarse, y normalizarlos internamente — no hace falta que el
+frontend traduzca a mano:
+
+- `sexo`: acepta `"M"`, `"F"`, y también (sin distinguir mayúsculas) `"masculino"`, `"femenino"`.
+- `tipo_medicion_talla`: acepta `"de_pie"`, `"acostado"`, y también `"pie"`/`"estatura"` (→
+  `de_pie`), `"longitud"` (→ `acostado`).
+- `paciente.etnia`: acepta `"kogui"` y también `"kaggaba"` (autónimo del mismo pueblo, ver HU-2)
+  — ambos se guardan como `"kogui"`. `"arhuaco"` y `"ninguna"` se mantienen igual.
+
+Todo lo demás (los `TriEstado`, los booleanos de `signos_clinicos`, `nivel_actividad`) **no**
+tiene alias — son valores de un formulario cerrado, no texto libre del usuario, así que el
+frontend debe mandarlos exactos como están documentados abajo.
+
+### Ejemplo de payload completo
+
+```json
+{
+  "codigo_caso": "KAG-20260927-125231",
+  "fecha_reporte": "2026-09-27",
+  "objetivo_reporte": "Seguimiento nutricional bimensual",
+  "notas_administrativas": "Brigada territorial acompañada por cabildo local, comunidad de Seykúkui.",
+
+  "paciente": {
+    "nombres": "Samin K.",
+    "apellidos": "Protegido por soberanía CARE",
+    "etnia": "kogui",
+    "comunidad_asentamiento": "Seykúkui",
+    "municipio": "Santa Marta",
+    "departamento": "magdalena",
+    "cuidador_principal": "Madre (Saga)",
+    "lengua_principal": "kaggaba",
+    "requiere_mediacion_cultural": true
+  },
+
+  "sexo": "M",
+  "fecha_evaluacion": "2026-09-27",
+  "edad_meses": "24",
+  "peso_kg": "11.45",
+  "talla_cm": "84.5",
+  "tipo_medicion_talla": "de_pie",
+  "perimetro_cefalico_cm": "47.5",
+  "perimetro_braquial_cm": "13.2",
+  "perimetro_cintura_cm": "46.0",
+  "perimetro_cadera_cm": "48.0",
+  "edema_bilateral": false,
+
+  "calidad_medicion": {
+    "balanza_calibrada": "si",
+    "instrumentos_validados": "si",
+    "medicion_repetida": "si",
+    "observaciones": "Medición tomada en bohío tradicional con piso de madera irregular; se usó base rígida nivelada. Niño cooperador."
+  },
+
+  "signos_clinicos": {
+    "fatiga": false,
+    "decaimiento": false,
+    "fiebre": false,
+    "diarrea": false,
+    "vomito": false,
+    "perdida_peso_reciente": false,
+    "rechazo_alimento": false,
+    "deshidratacion": false,
+    "dificultad_respiratoria": false,
+    "observaciones": ""
+  },
+
+  "habitos_alimentarios": {
+    "numero_comidas_dia": 3,
+    "alimentos_frecuentes": "Guineo verde, yuca dulce, malanga (ñame), frijol guajiro, plátano, leche materna.",
+    "alimentos_escasos": "Huevos de campo, pescado de cuenca baja, aguacate, cítricos de temporada.",
+    "cambios_recientes_alimentacion": "Cosecha baja de frijol por sequía.",
+    "restricciones_culturales_familiares": "Ayuno ritual orientado por el Mamo, exclusión temporal de carnes rojas o grasas externas.",
+    "acceso_agua_segura": "si"
+  },
+
+  "actividad_fisica": {
+    "nivel_actividad": "moderado",
+    "actividades_diarias": "Juegos en bohío y patio, caminatas cortas con la madre.",
+    "limitaciones": ""
+  },
+
+  "contexto_familiar": {
+    "antecedentes_familiares_baja_talla": "si",
+    "hermanos_baja_talla": "no",
+    "inseguridad_alimentaria_reportada": "no_reportado",
+    "dificultad_acceso_salud": "si",
+    "observaciones_familia": "Comentarios de la madre sobre buen apetito, ánimo y destrezas al caminar en montaña.",
+    "observaciones_autoridad_tradicional": "Petición de armonización espiritual (pagamento), consentimiento para derivación médica si fuere requerida."
+  }
+}
+```
+
+### Todos los bloques son opcionales (excepto lo que ya era obligatorio hoy)
+
+Un médico apurado puede seguir mandando solo `sexo`/`edad_meses`/`peso_kg`/`talla_cm`/
+`tipo_medicion_talla` (lo mínimo de hoy) y el caso queda incompleto pero válido — nada de lo
+nuevo es obligatorio. Si se omite `codigo_caso`, el sistema genera uno (`MIDA-2026-000123`).
+
+### Referencia rápida de valores válidos
+
+| Campo | Valores |
+|---|---|
+| `sexo` | `M`, `F` (alias: `masculino`, `femenino`) |
+| `tipo_medicion_talla` | `de_pie`, `acostado` (alias: `pie`, `estatura`, `longitud`) |
+| `paciente.etnia` | `ninguna`, `kogui` (alias: `kaggaba`), `arhuaco` |
+| cualquier campo `TriEstado` (`balanza_calibrada`, `instrumentos_validados`, `medicion_repetida`, `acceso_agua_segura`, `antecedentes_familiares_baja_talla`, `hermanos_baja_talla`, `inseguridad_alimentaria_reportada`, `dificultad_acceso_salud`) | `si`, `no`, `no_reportado` (exactos, sin alias) |
+| `actividad_fisica.nivel_actividad` | `bajo`, `moderado`, `alto` |
+| booleanos de `signos_clinicos` | `true` / `false` |
+
+### Respuesta
+
+La respuesta de `EvaluacionSerializer` no cambia de forma — sigue trayendo `id`, `estado`,
+`resultados` (los 6 indicadores OMS), `reporte` (resúmenes generados por el LLM),
+`reporte_pdf_url`, `reporte_familiar_pdf_url`, `alerta_critica`. Los bloques nuevos
+(`calidad_medicion`, `signos_clinicos`, etc.) se agregan como objetos anidados de solo lectura,
+igual que ya se hace con `paciente`/`resultados`/`reporte` — se pueden consultar de vuelta en el
+mismo `GET /api/v1/evaluaciones/{id}/`.
 
 ## HU-9 — Login obligatorio: solo médicos acceden al sistema
 
